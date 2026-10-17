@@ -1,0 +1,33 @@
+{
+  "name": "label-printer",
+  "version": "0.1.0",
+  "description": "Label Printer: design a label once, merge a mailing list into it, and print full 8.5 x 11 sheets of labels from the browser.",
+  "author": "Ryan",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.18.0"
+  },
+  "//@electricblazor/react": "Vendored from ElectricBlazor/react at 0.17.0 (npm pack of dev-claude), because the feed's latest is 0.13.1. Once 0.17.0 is published, switch to \"^0.17.0\" and add an .npmrc scoping @electricblazor to the feed, as Git Client does.",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "//test": "Node's own runner with built-in type stripping: the tested modules are plain logic (parsers, geometry, encoders) with no DOM or CSS, so they run as-is without a bundler.",
+    "test": "node --test --disable-warning=ExperimentalWarning \"tests/**/*.test.ts\""
+  },
+  "dependencies": {
+    "@electricblazor/react": "file:vendor/electricblazor-react-0.17.0.tgz",
+    "react": "19.2.6",
+    "react-dom": "19.2.6"
+  },
+  "devDependencies": {
+    "@types/node": "22.19.19",
+    "@types/react": "19.2.14",
+    "@types/react-dom": "19.2.3",
+    "@vitejs/plugin-react": "6.0.2",
+    "typescript": "5.9.3",
+    "vite": "8.0.13"
+  }
+}

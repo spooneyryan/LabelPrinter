@@ -1,0 +1,1401 @@
+/*
+ * Label Printer's own styles. Everything here reads the suite's tier-1 tokens (--eb-*), so the
+ * app follows whichever skin is chosen; the ElectricBlazor components bring their own rules
+ * through styles.css and are only ever adjusted through their tier-2 tokens and stable class
+ * names, never by restating their rules.
+ *
+ * Two surfaces deliberately ignore the skin: the label stock and the printed page are paper, so
+ * they stay white with dark ink in every theme, dark ones included.
+ */
+
+/* ── Page frame ─────────────────────────────────────────────────────────────────────────────── */
+
+html,
+body,
+#root {
+    height: 100%;
+}
+
+body {
+    margin: 0;
+    background: var(--eb-surface);
+    color: var(--eb-text);
+    font-family: var(--eb-font-family);
+    font-size: 0.9375rem;
+}
+
+.lp-app {
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr);
+    height: 100vh;
+    min-width: 960px;
+}
+
+.lp-loading {
+    display: grid;
+    place-items: center;
+    height: 100vh;
+    color: var(--eb-text-muted);
+}
+
+/* ── Header ─────────────────────────────────────────────────────────────────────────────────── */
+
+.lp-header {
+    display: flex;
+    align-items: center;
+    gap: var(--eb-space-3);
+    padding: var(--eb-space-2) var(--eb-space-4);
+    background: var(--eb-surface-raised);
+    border-bottom: 1px solid var(--eb-border);
+    box-shadow: var(--eb-shadow-1);
+    position: relative;
+    z-index: 2;
+}
+
+.lp-brand {
+    display: flex;
+    align-items: center;
+    gap: var(--eb-space-2);
+    font-family: var(--eb-font-heading);
+    font-weight: var(--eb-font-heading-weight);
+    font-size: 1.05rem;
+    white-space: nowrap;
+}
+
+.lp-brand-mark {
+    width: 26px;
+    height: 26px;
+    flex: none;
+}
+
+.lp-title-field {
+    flex: 0 1 18rem;
+    min-width: 8rem;
+    --eb-input-bg: transparent;
+    --eb-input-border: transparent;
+    --eb-input-font-size: 0.95rem;
+}
+
+.lp-header-spacer {
+    flex: 1 1 auto;
+}
+
+.lp-header-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--eb-space-2);
+}
+
+.lp-save-state {
+    color: var(--eb-text-muted);
+    font-size: 0.8rem;
+    white-space: nowrap;
+}
+
+/* Icon-sized buttons in toolbars and headers. */
+.lp-compact {
+    --eb-button-padding: 0.35em 0.6em;
+    --eb-button-font-size: 0.85rem;
+}
+
+.lp-icon-button {
+    --eb-button-padding: 0.35em;
+    min-width: 2.1em;
+}
+
+.lp-button-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--eb-space-2);
+}
+
+/* A pressed toggle, through the button's own tier-2 tokens. */
+.lp-toggle[aria-pressed="true"] {
+    --eb-button-default-bg: var(--eb-accent-soft);
+    --eb-button-default-border: var(--eb-accent);
+    --eb-button-default-text: var(--eb-accent);
+}
+
+.lp-icon {
+    width: 1.15em;
+    height: 1.15em;
+    flex: none;
+    vertical-align: -0.2em;
+}
+
+/* ── Steps ──────────────────────────────────────────────────────────────────────────────────── */
+
+.lp-steps {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    height: 100%;
+    /* The badges here are facts (the stock, the record count), not alerts: neutral, not red. */
+    --eb-tabs-badge-background: var(--eb-surface-sunken);
+    --eb-tabs-badge-foreground: var(--eb-text-muted);
+    --eb-tabs-badge-font-weight: 600;
+    --eb-tabs-badge-font-size: 0.7rem;
+}
+
+.lp-steps > .eb-tabs-header {
+    padding: var(--eb-space-2) var(--eb-space-4) 0;
+    background: var(--eb-surface-raised);
+    border-bottom: 1px solid var(--eb-border);
+}
+
+.lp-steps > .eb-tabs-header .eb-tabs-list {
+    padding-bottom: var(--eb-space-2);
+}
+
+.lp-step-panel {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    padding-top: 0;
+}
+
+.lp-step {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: grid;
+    gap: var(--eb-space-4);
+    padding: var(--eb-space-4);
+    overflow: auto;
+}
+
+.lp-column {
+    display: flex;
+    flex-direction: column;
+    gap: var(--eb-space-4);
+    min-width: 0;
+    min-height: 0;
+}
+
+.lp-scroll {
+    overflow: auto;
+    min-height: 0;
+}
+
+.lp-card-body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--eb-space-3);
+}
+
+.lp-muted {
+    color: var(--eb-text-muted);
+}
+
+.lp-small {
+    font-size: 0.82rem;
+}
+
+.lp-note {
+    margin: 0;
+    color: var(--eb-text-muted);
+    font-size: 0.85rem;
+    line-height: 1.45;
+}
+
+.lp-heading {
+    margin: 0;
+    font-family: var(--eb-font-heading);
+    font-weight: var(--eb-font-heading-weight);
+    font-size: 0.95rem;
+}
+
+.lp-issue {
+    display: flex;
+    gap: var(--eb-space-2);
+    align-items: flex-start;
+    padding: var(--eb-space-2) var(--eb-space-3);
+    border-radius: var(--eb-radius-sm);
+    font-size: 0.85rem;
+    line-height: 1.4;
+}
+
+.lp-issue-error {
+    background: var(--eb-danger-soft);
+    color: var(--eb-danger);
+}
+
+.lp-issue-warning {
+    background: var(--eb-warning-soft);
+    color: var(--eb-warning);
+}
+
+.lp-issue-info {
+    background: var(--eb-info-soft);
+    color: var(--eb-info);
+}
+
+.lp-issue-success {
+    background: var(--eb-success-soft);
+    color: var(--eb-success);
+}
+
+/* ── Form fields of our own ─────────────────────────────────────────────────────────────────── */
+
+.lp-field-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--eb-space-3);
+}
+
+.lp-field-grid-3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.lp-field-grid-4 {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.lp-span-all {
+    grid-column: 1 / -1;
+}
+
+/* Mirrors EbTextBox's box through the same --eb-input-* tokens, so a number field and a text box
+   restyle together. */
+.lp-input-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.lp-input {
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
+    margin: 0;
+    padding: var(--eb-input-padding, 0.45em 0.65em);
+    font: inherit;
+    font-size: var(--eb-input-font-size, 0.9rem);
+    font-variant-numeric: tabular-nums;
+    line-height: 1.4;
+    color: var(--eb-input-text, var(--eb-text));
+    background: var(--eb-input-bg, var(--eb-surface-raised));
+    border: 1px solid var(--eb-input-border, var(--eb-border-strong));
+    border-radius: var(--eb-input-radius, var(--eb-radius-sm, 6px));
+    transition: border-color var(--eb-duration-fast, 120ms) ease;
+}
+
+.lp-input:hover:not(:disabled):not([aria-invalid="true"]) {
+    border-color: var(--eb-input-border-hover, var(--eb-text-muted));
+}
+
+.lp-input:focus-visible {
+    outline: var(--eb-focus-ring);
+    outline-offset: 1px;
+}
+
+.lp-input:disabled {
+    color: var(--eb-input-disabled-text, var(--eb-text-muted));
+    background: var(--eb-input-disabled-bg, var(--eb-surface-sunken));
+}
+
+.lp-input[aria-invalid="true"] {
+    border-color: var(--eb-input-invalid-border, var(--eb-danger));
+}
+
+.lp-input-with-suffix {
+    padding-right: 2.4em;
+}
+
+.lp-input-suffix {
+    position: absolute;
+    right: 0.6em;
+    color: var(--eb-text-muted);
+    font-size: 0.8rem;
+    pointer-events: none;
+}
+
+.lp-color-field {
+    display: flex;
+    gap: var(--eb-space-2);
+    align-items: center;
+}
+
+.lp-swatch-button {
+    --eb-button-padding: 0.25em;
+}
+
+.lp-swatch {
+    display: inline-block;
+    width: 1.35em;
+    height: 1.35em;
+    border-radius: 4px;
+    border: 1px solid var(--eb-border-strong);
+    background-clip: padding-box;
+}
+
+.lp-swatch-none {
+    background: linear-gradient(135deg, transparent 45%, var(--eb-danger) 45%, var(--eb-danger) 55%, transparent 55%), #fff;
+}
+
+.lp-color-popover {
+    width: 300px;
+    padding: var(--eb-space-2);
+}
+
+.lp-segmented {
+    --eb-cool-button-min-width: 2.3em;
+    --eb-cool-button-padding: 0.25em 0.5em;
+    --eb-cool-button-font-size: 0.8rem;
+    display: inline-flex;
+}
+
+.lp-label-text {
+    font-size: var(--eb-form-field-label-size, 0.875rem);
+    font-weight: var(--eb-form-field-label-weight, 500);
+}
+
+.lp-inline-field {
+    display: flex;
+    flex-direction: column;
+    gap: var(--eb-space-1);
+}
+
+/* ── Sheet step ─────────────────────────────────────────────────────────────────────────────── */
+
+.lp-sheet-step {
+    grid-template-columns: minmax(280px, 340px) minmax(0, 1fr) minmax(300px, 360px);
+    align-items: start;
+}
+
+.lp-preset-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--eb-space-1);
+}
+
+.lp-chip {
+    --eb-button-padding: 0.2em 0.65em;
+    --eb-button-font-size: 0.78rem;
+    --eb-button-radius: var(--eb-radius-pill);
+}
+
+.lp-preset-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--eb-space-2);
+    max-height: calc(100vh - 330px);
+    min-height: 200px;
+    overflow: auto;
+    padding: 2px;
+}
+
+.lp-preset {
+    display: grid;
+    grid-template-columns: 44px minmax(0, 1fr);
+    gap: var(--eb-space-3);
+    align-items: center;
+    width: 100%;
+    padding: var(--eb-space-2) var(--eb-space-3);
+    text-align: left;
+    font: inherit;
+    color: inherit;
+    background: var(--eb-surface-raised);
+    border: 1px solid var(--eb-border);
+    border-radius: var(--eb-radius-md);
+    cursor: pointer;
+}
+
+.lp-preset:hover {
+    border-color: var(--eb-border-strong);
+}
+
+.lp-preset:focus-visible {
+    outline: var(--eb-focus-ring);
+    outline-offset: 2px;
+}
+
+.lp-preset[aria-pressed="true"] {
+    border-color: var(--eb-accent);
+    background: var(--eb-accent-soft);
+}
+
+.lp-preset-title {
+    font-weight: 600;
+}
+
+.lp-preset-summary {
+    font-size: 0.8rem;
+    color: var(--eb-text-muted);
+}
+
+.lp-preset-thumb {
+    width: 44px;
+    height: 57px;
+}
+
+.lp-diagram-card {
+    position: sticky;
+    top: 0;
+}
+
+.lp-diagram {
+    display: block;
+    width: 100%;
+    max-height: calc(100vh - 260px);
+}
+
+.lp-diagram-page {
+    fill: #fff;
+    stroke: var(--eb-border-strong);
+}
+
+.lp-diagram-label {
+    fill: color-mix(in srgb, var(--eb-accent) 10%, #fff);
+    stroke: var(--eb-accent);
+}
+
+.lp-diagram-dimension {
+    stroke: var(--eb-danger);
+    fill: none;
+}
+
+.lp-diagram-dimension-text {
+    fill: var(--eb-danger);
+    font-family: var(--eb-font-family);
+}
+
+.lp-diagram-shadow {
+    fill: var(--eb-backdrop);
+    opacity: 0.18;
+}
+
+.lp-diagram-edge {
+    fill: none;
+    stroke: var(--eb-text-muted);
+}
+
+.lp-diagram-tag {
+    fill: #fff;
+    stroke: var(--eb-danger);
+}
+
+.lp-diagram-tag-text {
+    fill: var(--eb-danger);
+    font-family: var(--eb-font-family);
+    font-weight: 700;
+}
+
+.lp-diagrams {
+    display: grid;
+    grid-template-columns: minmax(0, 0.8fr) minmax(0, 1fr);
+    gap: var(--eb-space-4);
+    align-items: start;
+}
+
+.lp-diagram-caption {
+    margin: var(--eb-space-1) 0 0;
+    text-align: center;
+    font-size: 0.78rem;
+    color: var(--eb-text-muted);
+}
+
+.lp-legend {
+    display: grid;
+    gap: 2px;
+    margin: var(--eb-space-3) 0 0;
+    font-size: 0.85rem;
+}
+
+.lp-legend-row {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--eb-space-3);
+    padding: 0.15rem 0;
+    border-bottom: 1px dashed var(--eb-border);
+}
+
+.lp-legend dt {
+    display: flex;
+    align-items: center;
+    gap: var(--eb-space-2);
+}
+
+.lp-legend dd {
+    margin: 0;
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+}
+
+.lp-tagged-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4em;
+}
+
+.lp-legend-tag-small {
+    width: 1.05rem;
+    height: 1.05rem;
+    font-size: 0.6rem;
+    border-width: 1px;
+}
+
+.lp-legend-tag {
+    display: inline-grid;
+    place-items: center;
+    width: 1.3rem;
+    height: 1.3rem;
+    border: 1.5px solid var(--eb-danger);
+    border-radius: 50%;
+    color: var(--eb-danger);
+    font-size: 0.7rem;
+    font-weight: 700;
+}
+
+.lp-sheet-summary {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--eb-space-2) var(--eb-space-4);
+    font-size: 0.85rem;
+    color: var(--eb-text-muted);
+}
+
+.lp-sheet-summary strong {
+    color: var(--eb-text);
+}
+
+/* ── Data step ──────────────────────────────────────────────────────────────────────────────── */
+
+.lp-data-step {
+    grid-template-columns: minmax(260px, 320px) minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr);
+}
+
+.lp-dropzone {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--eb-space-3);
+    min-height: 320px;
+    padding: var(--eb-space-5);
+    text-align: center;
+    border: 2px dashed var(--eb-border-strong);
+    border-radius: var(--eb-radius-lg);
+    background: var(--eb-surface-raised);
+    transition: border-color var(--eb-duration-fast) ease, background var(--eb-duration-fast) ease;
+}
+
+.lp-dropzone-active {
+    border-color: var(--eb-accent);
+    background: var(--eb-accent-soft);
+}
+
+.lp-dropzone-icon {
+    width: 48px;
+    height: 48px;
+    color: var(--eb-accent);
+}
+
+.lp-dropzone h2 {
+    margin: 0;
+    font-family: var(--eb-font-heading);
+    font-weight: var(--eb-font-heading-weight);
+    font-size: 1.2rem;
+}
+
+.lp-formats {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: var(--eb-space-2);
+}
+
+.lp-format {
+    padding: 0.15em 0.6em;
+    border-radius: var(--eb-radius-pill);
+    background: var(--eb-surface-sunken);
+    color: var(--eb-text-muted);
+    font-size: 0.78rem;
+}
+
+.lp-grid-panel {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-height: 0;
+    background: var(--eb-surface-raised);
+    border: 1px solid var(--eb-border);
+    border-radius: var(--eb-radius-md);
+    overflow: hidden;
+}
+
+.lp-grid-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--eb-space-2);
+    padding: var(--eb-space-2) var(--eb-space-3);
+    border-bottom: 1px solid var(--eb-border);
+}
+
+.lp-grid-search {
+    flex: 0 1 16rem;
+}
+
+.lp-grid-scroll {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
+}
+
+.lp-grid {
+    border-collapse: separate;
+    border-spacing: 0;
+    font-size: 0.85rem;
+    min-width: 100%;
+}
+
+.lp-grid th,
+.lp-grid td {
+    border-bottom: 1px solid var(--eb-border);
+    border-right: 1px solid var(--eb-border);
+    padding: 0;
+    text-align: left;
+    white-space: nowrap;
+}
+
+.lp-grid thead th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: var(--eb-surface-sunken);
+    font-weight: 600;
+}
+
+.lp-grid .lp-grid-gutter {
+    position: sticky;
+    left: 0;
+    z-index: 1;
+    width: 1%;
+    background: var(--eb-surface-sunken);
+    color: var(--eb-text-muted);
+    text-align: right;
+}
+
+.lp-grid thead .lp-grid-gutter {
+    z-index: 2;
+}
+
+.lp-grid-gutter-inner {
+    display: flex;
+    align-items: center;
+    gap: var(--eb-space-2);
+    padding: 0 var(--eb-space-2);
+    min-height: 2rem;
+}
+
+.lp-grid-gutter-inner .eb-checkbox {
+    --eb-form-field-gap: 0;
+}
+
+.lp-grid-header {
+    display: flex;
+    align-items: center;
+    gap: var(--eb-space-1);
+    padding: 0.2rem 0.25rem 0.2rem 0.6rem;
+    min-width: 7rem;
+}
+
+.lp-grid-header-name {
+    flex: 1 1 auto;
+}
+
+.lp-cell {
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+    min-width: 7rem;
+    max-width: 22rem;
+    min-height: 2rem;
+    padding: 0.35rem 0.6rem;
+    border: 0;
+    background: transparent;
+    font: inherit;
+    color: inherit;
+    text-align: left;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    cursor: text;
+}
+
+.lp-cell:focus-visible {
+    outline: var(--eb-focus-ring);
+    outline-offset: -2px;
+}
+
+.lp-cell-input {
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 7rem;
+    min-height: 2rem;
+    padding: 0.35rem 0.6rem;
+    border: 0;
+    outline: 2px solid var(--eb-accent);
+    outline-offset: -2px;
+    font: inherit;
+    color: var(--eb-text);
+    background: var(--eb-surface-raised);
+}
+
+.lp-row-excluded td:not(.lp-grid-gutter) {
+    color: var(--eb-text-muted);
+    text-decoration: line-through;
+    text-decoration-color: color-mix(in srgb, var(--eb-text-muted) 60%, transparent);
+}
+
+.lp-grid-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--eb-space-2);
+    padding: var(--eb-space-2) var(--eb-space-3);
+    border-top: 1px solid var(--eb-border);
+    font-size: 0.82rem;
+    color: var(--eb-text-muted);
+}
+
+.lp-menu {
+    display: flex;
+    flex-direction: column;
+    min-width: 12rem;
+    padding: var(--eb-space-1);
+}
+
+.lp-menu-item {
+    display: flex;
+    align-items: center;
+    gap: var(--eb-space-2);
+    width: 100%;
+    padding: 0.4rem 0.6rem;
+    border: 0;
+    border-radius: var(--eb-radius-sm);
+    background: transparent;
+    font: inherit;
+    font-size: 0.85rem;
+    color: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.lp-menu-item:hover,
+.lp-menu-item:focus-visible {
+    background: var(--eb-surface-sunken);
+    outline: none;
+}
+
+.lp-menu-item-danger {
+    color: var(--eb-danger);
+}
+
+.lp-menu-separator {
+    height: 1px;
+    margin: var(--eb-space-1) 0;
+    background: var(--eb-border);
+}
+
+.lp-stat-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.85rem;
+}
+
+.lp-paste-area textarea {
+    font-family: var(--eb-font-mono);
+    font-size: 0.8rem;
+}
+
+/* ── Design step ────────────────────────────────────────────────────────────────────────────── */
+
+.lp-design-step {
+    grid-template-columns: 250px minmax(0, 1fr) 320px;
+    grid-template-rows: minmax(0, 1fr);
+    gap: 0;
+    padding: 0;
+    overflow: hidden;
+}
+
+.lp-sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: var(--eb-space-4);
+    min-height: 0;
+    overflow: auto;
+    padding: var(--eb-space-3);
+    background: var(--eb-surface-raised);
+}
+
+.lp-sidebar-left {
+    border-right: 1px solid var(--eb-border);
+}
+
+.lp-sidebar-right {
+    border-left: 1px solid var(--eb-border);
+}
+
+.lp-sidebar-section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--eb-space-2);
+}
+
+.lp-sidebar-section > h3 {
+    margin: 0;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--eb-text-muted);
+}
+
+.lp-insert-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--eb-space-2);
+}
+
+.lp-insert-grid .eb-button {
+    justify-content: flex-start;
+    --eb-button-padding: 0.4em 0.6em;
+    --eb-button-font-size: 0.82rem;
+}
+
+.lp-field-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--eb-space-1);
+}
+
+.lp-field-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3em;
+    max-width: 100%;
+    padding: 0.2em 0.6em;
+    border: 1px solid var(--eb-border-strong);
+    border-radius: var(--eb-radius-pill);
+    background: var(--eb-surface);
+    color: var(--eb-text);
+    font: inherit;
+    font-size: 0.78rem;
+    cursor: grab;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.lp-field-chip:hover {
+    border-color: var(--eb-accent);
+    color: var(--eb-accent);
+}
+
+.lp-field-chip:focus-visible {
+    outline: var(--eb-focus-ring);
+    outline-offset: 1px;
+}
+
+.lp-field-chip-special {
+    border-style: dashed;
+}
+
+.lp-layer {
+    display: flex;
+    align-items: center;
+    gap: var(--eb-space-1);
+    width: 100%;
+    min-width: 0;
+    padding: 0.15rem 0.25rem;
+    border-radius: var(--eb-radius-sm);
+    font-size: 0.82rem;
+}
+
+.lp-layer-selected {
+    background: var(--eb-accent-soft);
+    color: var(--eb-accent);
+}
+
+.lp-layer-grip {
+    cursor: grab;
+    color: var(--eb-text-muted);
+    display: inline-flex;
+}
+
+.lp-layer-name {
+    flex: 1 1 auto;
+    min-width: 0;
+    padding: 0.2rem 0.25rem;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.lp-layer-name:focus-visible {
+    outline: var(--eb-focus-ring);
+}
+
+.lp-layer-hidden .lp-layer-name {
+    opacity: 0.5;
+}
+
+.lp-layer-toggle {
+    display: inline-flex;
+    padding: 0.2rem;
+    border: 0;
+    border-radius: var(--eb-radius-sm);
+    background: transparent;
+    color: var(--eb-text-muted);
+    cursor: pointer;
+}
+
+.lp-layer-toggle:hover {
+    color: var(--eb-text);
+    background: var(--eb-surface-sunken);
+}
+
+.lp-layer-toggle:focus-visible {
+    outline: var(--eb-focus-ring);
+}
+
+.lp-canvas-column {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 0;
+}
+
+.lp-canvas-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--eb-space-2) var(--eb-space-3);
+    padding: var(--eb-space-2) var(--eb-space-3);
+    border-bottom: 1px solid var(--eb-border);
+    background: var(--eb-surface-raised);
+}
+
+.lp-toolbar-group {
+    display: flex;
+    align-items: center;
+    gap: var(--eb-space-1);
+}
+
+.lp-toolbar-divider {
+    width: 1px;
+    align-self: stretch;
+    background: var(--eb-border);
+}
+
+.lp-record-label {
+    min-width: 7.5rem;
+    text-align: center;
+    font-size: 0.85rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.lp-zoom-select {
+    width: 6.5rem;
+}
+
+.lp-canvas-scroll {
+    position: relative;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
+    background:
+        radial-gradient(circle, color-mix(in srgb, var(--eb-text-muted) 22%, transparent) 1px, transparent 1.5px) 0 0 / 18px 18px,
+        var(--eb-surface-sunken);
+}
+
+.lp-canvas-stage {
+    display: grid;
+    place-items: center;
+    min-width: 100%;
+    min-height: 100%;
+    box-sizing: border-box;
+    padding: 48px;
+    width: max-content;
+}
+
+/* The label stock: paper in every skin. */
+.lp-label-surface {
+    position: relative;
+    background: #fff;
+    color: #000;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.18), 0 8px 28px rgba(0, 0, 0, 0.12);
+}
+
+.lp-label-guide {
+    position: absolute;
+    pointer-events: none;
+    border: 1px dashed rgba(20, 91, 231, 0.45);
+}
+
+.lp-label-grid {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    border-radius: inherit;
+}
+
+.lp-label-clip {
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    overflow: hidden;
+    pointer-events: none;
+}
+
+.lp-element {
+    outline: 1px dashed transparent;
+    outline-offset: 0;
+    border-radius: 1px;
+}
+
+.lp-element:hover {
+    outline-color: rgba(20, 91, 231, 0.55);
+}
+
+.lp-element.lp-element-selected {
+    outline: 1.5px solid #145be7;
+    z-index: 5;
+}
+
+.lp-element.lp-element-locked {
+    cursor: default;
+}
+
+.lp-element .eb-resize-box {
+    overflow: visible;
+    --eb-resize-box-handle-hover-color: rgba(20, 91, 231, 0.25);
+    --eb-resize-box-handle-active-color: rgba(20, 91, 231, 0.5);
+}
+
+.lp-element:not(.lp-element-selected) .eb-resize-box-handle,
+.lp-element.lp-element-locked .eb-resize-box-handle {
+    display: none;
+}
+
+.lp-element .eb-resize-box-handle-se {
+    right: -6px;
+    bottom: -6px;
+    width: 11px;
+    height: 11px;
+    border: 1.5px solid #145be7;
+    background: #fff;
+    border-radius: 2px;
+}
+
+.lp-element-badge {
+    position: absolute;
+    top: -1.35rem;
+    left: -1px;
+    padding: 0.05rem 0.4rem;
+    border-radius: 3px 3px 0 0;
+    background: #145be7;
+    color: #fff;
+    font-size: 0.68rem;
+    line-height: 1.3;
+    white-space: nowrap;
+    pointer-events: none;
+}
+
+.lp-overflow-flag {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    width: 0;
+    height: 0;
+    border-left: 9px solid transparent;
+    border-bottom: 9px solid #c5291d;
+    pointer-events: none;
+}
+
+.lp-visual-placeholder {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35em;
+    padding: 2px;
+    box-sizing: border-box;
+    overflow: hidden;
+    border: 1px dashed #8a94a6;
+    background: repeating-linear-gradient(45deg, rgba(138, 148, 166, 0.08) 0 6px, transparent 6px 12px);
+    color: #55647d;
+    font-family: system-ui, sans-serif;
+    font-size: 11px;
+    text-align: center;
+}
+
+.lp-visual-error {
+    border-color: #c5291d;
+    color: #c5291d;
+    background: rgba(197, 41, 29, 0.06);
+}
+
+.lp-canvas-status {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--eb-space-3);
+    padding: var(--eb-space-1) var(--eb-space-3);
+    border-top: 1px solid var(--eb-border);
+    background: var(--eb-surface-raised);
+    color: var(--eb-text-muted);
+    font-size: 0.78rem;
+    min-height: 1.9rem;
+}
+
+.lp-status-warning {
+    color: var(--eb-warning);
+    font-weight: 500;
+}
+
+.lp-link-button {
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--eb-accent);
+    font: inherit;
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+.lp-inspector-empty {
+    display: flex;
+    flex-direction: column;
+    gap: var(--eb-space-3);
+}
+
+.lp-inspector-title {
+    display: flex;
+    align-items: center;
+    gap: var(--eb-space-2);
+}
+
+.lp-inspector-title .eb-text-box {
+    flex: 1 1 auto;
+}
+
+.lp-template-box textarea {
+    font-family: var(--eb-font-mono);
+    font-size: 0.82rem;
+    line-height: 1.5;
+    min-height: 6.5em;
+}
+
+.lp-field-picker {
+    display: flex;
+    flex-direction: column;
+    max-height: 18rem;
+    overflow: auto;
+    min-width: 12rem;
+    padding: var(--eb-space-1);
+}
+
+.lp-font-option {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--eb-space-2);
+    width: 100%;
+}
+
+.lp-font-option-kind {
+    color: var(--eb-text-muted);
+    font-family: var(--eb-font-family);
+    font-size: 0.72rem;
+}
+
+/* ── Print step ─────────────────────────────────────────────────────────────────────────────── */
+
+.lp-print-step {
+    grid-template-columns: minmax(300px, 360px) minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr);
+}
+
+.lp-preview-column {
+    display: flex;
+    flex-direction: column;
+    gap: var(--eb-space-3);
+    min-height: 0;
+}
+
+.lp-preview-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--eb-space-3);
+}
+
+.lp-preview-stage {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: grid;
+    place-items: center;
+    overflow: auto;
+    padding: var(--eb-space-4);
+    border-radius: var(--eb-radius-md);
+    background: var(--eb-surface-sunken);
+}
+
+.lp-page {
+    position: relative;
+    overflow: hidden;
+    background: #fff;
+    color: #000;
+    flex: none;
+}
+
+.lp-preview-stage .lp-page {
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2), 0 10px 30px rgba(0, 0, 0, 0.15);
+}
+
+.lp-page-content {
+    position: absolute;
+    inset: 0;
+    transform-origin: 0 0;
+}
+
+.lp-sheet-label {
+    position: absolute;
+    overflow: hidden;
+}
+
+.lp-sheet-label-outline {
+    outline: 1px solid #a3abb8;
+    outline-offset: -1px;
+}
+
+.lp-sheet-label-empty {
+    outline: 1px dashed #cdd3dc;
+    outline-offset: -1px;
+}
+
+.lp-sheet-label-used {
+    background: repeating-linear-gradient(45deg, #eef1f5 0 4px, #fff 4px 8px);
+    outline: 1px dashed #cdd3dc;
+    outline-offset: -1px;
+}
+
+.lp-element-static {
+    position: absolute;
+}
+
+.lp-slot-map {
+    display: grid;
+    gap: 3px;
+    padding: var(--eb-space-2);
+    border-radius: var(--eb-radius-sm);
+    background: var(--eb-surface-sunken);
+}
+
+.lp-slot {
+    min-height: 16px;
+    padding: 0;
+    border: 1px solid var(--eb-border-strong);
+    border-radius: 2px;
+    background: #fff;
+    color: var(--eb-text-muted);
+    font: inherit;
+    font-size: 0.6rem;
+    cursor: pointer;
+}
+
+.lp-slot:hover {
+    border-color: var(--eb-accent);
+}
+
+.lp-slot:focus-visible {
+    outline: var(--eb-focus-ring);
+    outline-offset: 1px;
+}
+
+.lp-slot[aria-pressed="true"] {
+    background: repeating-linear-gradient(45deg, var(--eb-surface-sunken) 0 3px, var(--eb-border) 3px 6px);
+    color: transparent;
+}
+
+.lp-test-mark {
+    position: absolute;
+    display: grid;
+    place-items: center;
+    color: #55647d;
+    font-family: system-ui, sans-serif;
+}
+
+.lp-test-cross-h,
+.lp-test-cross-v {
+    position: absolute;
+    background: #c5291d;
+}
+
+.lp-dl {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: var(--eb-space-1) var(--eb-space-3);
+    margin: 0;
+    font-size: 0.85rem;
+}
+
+.lp-dl dt {
+    color: var(--eb-text-muted);
+}
+
+.lp-dl dd {
+    margin: 0;
+    font-variant-numeric: tabular-nums;
+}
+
+.lp-print-button {
+    --eb-button-padding: 0.65em 1.2em;
+    --eb-button-font-size: 1rem;
+    width: 100%;
+}
+
+.lp-tips {
+    margin: 0;
+    padding-left: 1.2em;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    color: var(--eb-text-muted);
+}
+
+/* ── Settings ───────────────────────────────────────────────────────────────────────────────── */
+
+.lp-settings {
+    display: flex;
+    flex-direction: column;
+    gap: var(--eb-space-3);
+    width: 260px;
+    padding: var(--eb-space-2);
+}
+
+.lp-kbd {
+    display: inline-block;
+    padding: 0 0.35em;
+    border: 1px solid var(--eb-border-strong);
+    border-bottom-width: 2px;
+    border-radius: 4px;
+    font-family: var(--eb-font-mono);
+    font-size: 0.75rem;
+}
+
+.lp-shortcuts {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: var(--eb-space-1) var(--eb-space-3);
+    font-size: 0.82rem;
+}

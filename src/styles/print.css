@@ -1,0 +1,46 @@
+/*
+ * Printing. The pages to print live in their own root, a sibling of the app under <body>, which
+ * is invisible on screen; in print media everything else is removed from the page and only that
+ * root lays out. The page size and a zero margin come from an @page rule the root writes for the
+ * current sheet, so the browser's own margins cannot shift the labels.
+ */
+
+.lp-print-root {
+    display: none;
+}
+
+@media print {
+    html,
+    body {
+        margin: 0 !important;
+        padding: 0 !important;
+        background: #fff !important;
+        height: auto !important;
+    }
+
+    body > *:not(.lp-print-root) {
+        display: none !important;
+    }
+
+    .lp-print-root {
+        display: block;
+    }
+
+    .lp-print-root .lp-page {
+        break-after: page;
+        page-break-after: always;
+        box-shadow: none;
+    }
+
+    .lp-print-root .lp-page:last-child {
+        break-after: auto;
+        page-break-after: auto;
+    }
+
+    /* Fills, images and colour bands are part of a label, not decoration to save toner on. */
+    .lp-print-root,
+    .lp-print-root * {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+}
