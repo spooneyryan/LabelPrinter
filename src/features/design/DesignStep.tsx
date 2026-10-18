@@ -4,7 +4,7 @@ import { ToggleButton, useUnit } from "../../components/fields.tsx";
 import { Icon } from "../../components/Icon.tsx";
 import { includedRows } from "../../model/dataOps.ts";
 import { duplicateElement } from "../../model/defaults.ts";
-import { buildFieldIndex, placeholderContext, ROW_NUMBER_FIELD, type MergeContext } from "../../model/merge.ts";
+import { buildFieldIndex, placeholderContext, ROW_NUMBER_FIELD, templateFields, type MergeContext } from "../../model/merge.ts";
 import type { LabelElement } from "../../model/types.ts";
 import { formatFriendlyInches, MM_PER_INCH } from "../../model/units.ts";
 import { contextForItem, useProblemScan } from "../../render/job.ts";
@@ -71,6 +71,23 @@ export function DesignStep({ ui, onUiChange }: { ui: DesignUi; onUiChange: (patc
 
     // The problem scan reads every record, so it trails the edits rather than holding them up.
     const problems = useProblemScan(design, data, rows);
+
+    /** Which of the data's fields the label merges anywhere, for ticking their chips. */
+    const usedFields = useMemo(() => {
+        const used = new Set<number>();
+        for (const element of design.elements) {
+            if ("template" in element) {
+                for (const name of templateFields(element.template)) {
+                    const index = fieldIndex.resolve(name);
+                    if (index !== undefined) {
+                        used.add(index);
+                    }
+                }
+            }
+        }
+
+        return used;
+    }, [design.elements, fieldIndex]);
 
     const selected = design.elements.find((element) => element.id === ui.selectedId) ?? null;
 
@@ -161,7 +178,13 @@ export function DesignStep({ ui, onUiChange }: { ui: DesignUi; onUiChange: (patc
         <div className="lp-step lp-design-step">
             <aside className="lp-sidebar lp-sidebar-left" aria-label="Add to the label">
                 <InsertPanel onInsert={insert} />
-                <FieldPanel fields={fields} hasData={data !== null} onInsertField={insertField} />
+                <FieldPanel
+                    fields={fields}
+                    usedFields={usedFields}
+                    hasData={data !== null}
+                    onInsertField={insertField}
+                    onAddAll={() => insert("fields")}
+                />
                 <LayersPanel
                     elements={design.elements}
                     selectedId={ui.selectedId}

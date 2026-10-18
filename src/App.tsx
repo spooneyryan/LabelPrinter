@@ -15,7 +15,7 @@ import {
     type TabItem
 } from "@electricblazor/react";
 import { BrowserFileSaveStore } from "@electricblazor/react/save";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
 import { flushSync } from "react-dom";
 import { ErrorBoundary } from "./components/ErrorBoundary.tsx";
 import { UnitContext } from "./components/fields.tsx";
@@ -24,7 +24,7 @@ import { DataStep } from "./features/data/DataStep.tsx";
 import { DEFAULT_DESIGN_UI, DesignStep, type DesignUi } from "./features/design/DesignStep.tsx";
 import { PrintStep } from "./features/print/PrintStep.tsx";
 import { SheetStep } from "./features/sheet/SheetStep.tsx";
-import { defaultSession } from "./model/defaults.ts";
+import { defaultSession, isCalibrated } from "./model/defaults.ts";
 import { sanitizeTemplate } from "./model/project.ts";
 import type { Calibration, LabelTemplate, Session } from "./model/types.ts";
 import type { LengthUnit } from "./model/units.ts";
@@ -60,6 +60,23 @@ interface PrintRequest {
 }
 
 const fileStore = new BrowserFileSaveStore();
+
+/** The keys EbTabbedCard moves between tabs with. */
+const TAB_KEYS = new Set(["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Home", "End"]);
+
+/*
+ * EbTabbedCard listens for its tab keys on its whole root, panel included, and acts on them from
+ * anywhere inside: an arrow pressed in a text box was cancelled and switched steps instead of
+ * moving the caret, as was an arrow nudging an element on the canvas. Keys pressed inside a step
+ * are the step's, so they stop at its edge; the tab strip itself still answers its own arrows.
+ * React events bubble through portals by component tree, so this covers the dialogs and popovers
+ * a step opens as well.
+ */
+const keepKeysInStep = (event: ReactKeyboardEvent) => {
+    if (TAB_KEYS.has(event.key)) {
+        event.stopPropagation();
+    }
+};
 
 const UNITS: { value: LengthUnit; label: string }[] = [
     { value: "in", label: "Inches" },
@@ -233,6 +250,7 @@ function Workspace({ initialStep }: { initialStep: StepId }) {
         }
     };
 
+    const calibrated = isCalibrated(calibration);
     const includedCount = data ? data.rows.length - excluded.size : 0;
     const steps: TabItem<StepId>[] = [
         { value: "sheet", label: "1  Sheet", badge: template.sheet.presetId === "custom" ? "custom" : template.sheet.name.replace(/^Avery /, "") },
@@ -336,21 +354,23 @@ function Workspace({ initialStep }: { initialStep: StepId }) {
                     value={step}
                     onValueChange={setStep}
                     panelContent={(value) => (
-                        <ErrorBoundary resetKey={value}>
-                            {value === "sheet" ? <SheetStep /> : null}
-                            {value === "data" ? <DataStep onShowDesign={() => setStep("design")} /> : null}
-                            {value === "design" ? <DesignStep ui={designUi} onUiChange={onDesignUiChange} /> : null}
-                            {value === "print" ? (
-                                <PrintStep
-                                    job={job}
-                                    calibration={calibration}
-                                    onCalibrationChange={setCalibration}
-                                    onPrint={() => startPrint("job")}
-                                    onPrintTest={() => startPrint("test")}
-                                    onShowDesign={() => setStep("design")}
-                                />
-                            ) : null}
-                        </ErrorBoundary>
+                        <div className="lp-step-keys" onKeyDown={keepKeysInStep}>
+                            <ErrorBoundary resetKey={value}>
+                                {value === "sheet" ? <SheetStep onPrintTest={() => startPrint("test")} calibrated={calibrated} /> : null}
+                                {value === "data" ? <DataStep onShowDesign={() => setStep("design")} /> : null}
+                                {value === "design" ? <DesignStep ui={designUi} onUiChange={onDesignUiChange} /> : null}
+                                {value === "print" ? (
+                                    <PrintStep
+                                        job={job}
+                                        calibration={calibration}
+                                        onCalibrationChange={setCalibration}
+                                        onPrint={() => startPrint("job")}
+                                        onPrintTest={() => startPrint("test")}
+                                        onShowDesign={() => setStep("design")}
+                                    />
+                                ) : null}
+                            </ErrorBoundary>
+                        </div>
                     )}
                 />
             </div>

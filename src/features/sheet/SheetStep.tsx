@@ -3,12 +3,29 @@ import { useMemo, useState } from "react";
 import { LengthField, NumberField, useUnit } from "../../components/fields.tsx";
 import { Icon } from "../../components/Icon.tsx";
 import { fitDesignToLabel, labelSizeChanged } from "../../model/fit.ts";
-import { presetSummary, presetTitle, SHEET_PRESETS, sheetFromPreset, type PresetKind, type SheetPreset } from "../../model/presets.ts";
-import { centerGrid, labelsPerSheet, sameLayout, spreadGrid, trailingMargins, validateSheet } from "../../model/sheet.ts";
+import {
+    matchesSearch,
+    PRESET_BRANDS,
+    presetShape,
+    presetSummary,
+    presetTitle,
+    SHEET_PRESETS,
+    sheetFromPreset
+} from "../../model/presets.ts";
+import {
+    centerGrid,
+    labelsPerSheet,
+    sameLayout,
+    spreadGrid,
+    testInset,
+    trailingMargins,
+    validateSheet,
+    type ShapeCategory
+} from "../../model/sheet.ts";
 import type { LabelShape, SheetSpec } from "../../model/types.ts";
 import { describeLength, formatFriendlyInches } from "../../model/units.ts";
 import { useEditor, useStore } from "../../state/store.tsx";
-import { CornerDetail, MeasureLegend, SheetDiagram, SheetThumb } from "./SheetDiagram.tsx";
+import { CornerDetail, describeMeasure, MeasureLegend, SheetDiagram, SheetThumb } from "./SheetDiagram.tsx";
 
 /*
  * Step 1: the label stock. Pick a product, or measure a sheet and type it in; the diagram redraws
@@ -16,16 +33,9 @@ import { CornerDetail, MeasureLegend, SheetDiagram, SheetThumb } from "./SheetDi
  * carries the design across (see fit.ts) — one undo puts it back.
  */
 
-const KINDS: readonly ("All" | PresetKind)[] = [
-    "All",
-    "Address",
-    "Shipping",
-    "Return address",
-    "File folder",
-    "Business card",
-    "Name badge",
-    "Full and half sheet"
-];
+const ALL_MAKERS = "All makers";
+const ANY_SHAPE = "Any shape";
+const SHAPE_FILTERS: readonly (typeof ANY_SHAPE | ShapeCategory)[] = [ANY_SHAPE, "Rectangle", "Square", "Round", "Oval"];
 
 const SHAPES: { value: LabelShape; label: string }[] = [
     { value: "rounded", label: "Rounded corners" },
@@ -45,33 +55,36 @@ function tagged(text: string, letter: string) {
     );
 }
 
-function matchesSearch(preset: SheetPreset, search: string): boolean {
-    const text = search.trim().toLowerCase();
-    if (text === "") {
-        return true;
-    }
-
-    return [preset.brand, preset.code, preset.kind, ...preset.compatible, presetSummary(preset)]
-        .join(" ")
-        .toLowerCase()
-        .includes(text);
+export interface SheetStepProps {
+    /** Prints the test sheet for the current measurements. */
+    onPrintTest: () => void;
+    /** Whether a printer calibration is set, which the test sheet applies like any print. */
+    calibrated: boolean;
 }
 
-export function SheetStep() {
+export function SheetStep({ onPrintTest, calibrated }: SheetStepProps) {
     const { state } = useStore();
     const editor = useEditor();
     const toast = useToast();
     const unit = useUnit();
     const sheet = state.template.sheet;
     const [search, setSearch] = useState("");
-    const [kind, setKind] = useState<(typeof KINDS)[number]>("All");
+    const [maker, setMaker] = useState(ALL_MAKERS);
+    const [shape, setShape] = useState<(typeof SHAPE_FILTERS)[number]>(ANY_SHAPE);
 
     const presets = useMemo(
-        () => SHEET_PRESETS.filter((preset) => (kind === "All" || preset.kind === kind) && matchesSearch(preset, search)),
-        [kind, search]
+        () =>
+            SHEET_PRESETS.filter(
+                (preset) =>
+                    (maker === ALL_MAKERS || preset.brand === maker) &&
+                    (shape === ANY_SHAPE || presetShape(preset) === shape) &&
+                    matchesSearch(preset, search)
+            ),
+        [maker, shape, search]
     );
 
     const issues = validateSheet(sheet, unit);
+    const hasErrors = issues.some((issue) => issue.severity === "error");
     const errorFor = (field: keyof SheetSpec) =>
         issues.find((issue) => issue.field === field && issue.severity === "error")?.message ?? null;
 
@@ -121,23 +134,39 @@ export function SheetStep() {
                     <EbTextBox
                         type="search"
                         label="Find a product"
-                        placeholder="Product number, e.g. 5160"
+                        placeholder="Code or size: 5160, S001, 1 x 1"
+                        helpText="Search by product or template code, or by label size"
                         value={search}
                         onValueChange={setSearch}
                         immediate
                     />
-                    <div className="lp-preset-filters" role="group" aria-label="Kind of label">
-                        {KINDS.map((option) => (
+                    <div className="lp-preset-filters" role="group" aria-label="Maker">
+                        {[ALL_MAKERS, ...PRESET_BRANDS].map((option) => (
                             <EbButton
                                 key={option}
                                 className="lp-chip lp-toggle"
-                                aria-pressed={kind === option}
-                                onClick={() => setKind(option)}
+                                aria-pressed={maker === option}
+                                onClick={() => setMaker(option)}
                             >
                                 {option}
                             </EbButton>
                         ))}
                     </div>
+                    <div className="lp-preset-filters" role="group" aria-label="Label shape">
+                        {SHAPE_FILTERS.map((option) => (
+                            <EbButton
+                                key={option}
+                                className="lp-chip lp-toggle"
+                                aria-pressed={shape === option}
+                                onClick={() => setShape(option)}
+                            >
+                                {option}
+                            </EbButton>
+                        ))}
+                    </div>
+                    <span className="lp-muted lp-small" aria-live="polite">
+                        {presets.length === SHEET_PRESETS.length ? `${presets.length} sheets` : `${presets.length} of ${SHEET_PRESETS.length} sheets`}
+                    </span>
                     <div className="lp-preset-list">
                         {presets.length === 0 ? (
                             <p className="lp-note">
@@ -162,6 +191,12 @@ export function SheetStep() {
                                         <>
                                             <br />
                                             <span className="lp-preset-summary">Also {preset.compatible.join(", ")}</span>
+                                        </>
+                                    ) : null}
+                                    {preset.note ? (
+                                        <>
+                                            <br />
+                                            <span className="lp-preset-summary">{preset.note}</span>
                                         </>
                                     ) : null}
                                 </span>
@@ -194,6 +229,23 @@ export function SheetStep() {
                         <span>
                             Bottom margin <strong>{describeLength(Math.max(0, bottom), unit)}</strong>
                         </span>
+                    </div>
+                    <div className="lp-test-row">
+                        <EbButton onClick={onPrintTest} disabled={hasErrors}>
+                            <Icon name="printer" /> Test
+                        </EbButton>
+                        <p className="lp-note">
+                            {hasErrors ? (
+                                <>Fix the measurements first; the problems are listed under Measurements.</>
+                            ) : (
+                                <>
+                                    Prints a box {describeMeasure(testInset(sheet), unit)} inside every label. Print it on a sheet of these
+                                    labels, or on plain paper held against one in front of a window: if the measurements are right, every
+                                    box sits inside its label with an even gap all round.
+                                    {calibrated ? " This printer's calibration from the Print step is applied." : ""}
+                                </>
+                            )}
+                        </p>
                     </div>
                 </div>
             </EbCard>

@@ -2,7 +2,7 @@ import { EbButton, EbCard, EbRadioGroup, EbSwitch } from "@electricblazor/react"
 import { useEffect, useMemo, useRef, useState, type MouseEvent } from "react";
 import { LengthField, NumberField } from "../../components/fields.tsx";
 import { Icon } from "../../components/Icon.tsx";
-import { defaultCalibration } from "../../model/defaults.ts";
+import { defaultCalibration, isCalibrated } from "../../model/defaults.ts";
 import { freeSlots } from "../../model/paginate.ts";
 import { cellSlot, labelsPerSheet } from "../../model/sheet.ts";
 import type { Calibration, FillOrder } from "../../model/types.ts";
@@ -119,8 +119,7 @@ export function PrintStep({ job, calibration, onCalibrationChange, onPrint, onPr
         setPrint({ usedSlots: [...used].sort((a, b) => a - b) });
     };
 
-    const calibrated =
-        calibration.offsetX !== 0 || calibration.offsetY !== 0 || calibration.scaleX !== 100 || calibration.scaleY !== 100;
+    const calibrated = isCalibrated(calibration);
 
     return (
         <div className="lp-step lp-print-step">
@@ -213,8 +212,10 @@ export function PrintStep({ job, calibration, onCalibrationChange, onPrint, onPr
                 <EbCard title="Printer calibration" collapsible defaultCollapsed={!calibrated}>
                     <div className="lp-card-body">
                         <p className="lp-note">
-                            If every label prints off by the same amount, print the alignment test on plain paper, hold it against a sheet
-                            of labels, and move the page by the difference. This is saved for this browser, not the template.
+                            The test sheet draws a box just inside every label. Print it on plain paper and hold it against a sheet of
+                            labels: if every box is off-centre the same way, move the page by half the difference between the two gaps
+                            (a ⅛″ gap on the left and none on the right means Move right −1/16″). This is saved for this browser, not the
+                            template.
                         </p>
                         <div className="lp-field-grid">
                             <LengthField
@@ -255,7 +256,7 @@ export function PrintStep({ job, calibration, onCalibrationChange, onPrint, onPr
                         </div>
                         <div className="lp-button-row">
                             <EbButton onClick={onPrintTest}>
-                                <Icon name="calibrate" /> Print alignment test
+                                <Icon name="printer" /> Print test sheet
                             </EbButton>
                             {calibrated ? <EbButton onClick={() => onCalibrationChange(defaultCalibration())}>Reset</EbButton> : null}
                         </div>

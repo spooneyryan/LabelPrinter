@@ -10,6 +10,7 @@ import {
     sameLayout,
     slotCell,
     spreadGrid,
+    testInset,
     trailingMargins,
     validateSheet
 } from "../src/model/sheet.ts";
@@ -95,6 +96,12 @@ describe("layout helpers", () => {
         const sheet = spreadGrid({ ...avery5160(), gapX: 0, gapY: 0.3 });
         assert.equal(sheet.gapX, 0.125);
         assert.equal(sheet.gapY, 0);
+    });
+
+    test("the test sheet's boxes sit 1/16″ inside, less on small labels", () => {
+        assert.equal(testInset(avery5160()), 1 / 16);
+        assert.equal(testInset(sheetFromPreset(findPreset("avery-5167")!)), 0.05); // ½″ tall
+        assert.equal(testInset({ labelWidth: 0.3, labelHeight: 2 }), 0.03);
     });
 
     test("sameLayout ignores names but not measurements", () => {

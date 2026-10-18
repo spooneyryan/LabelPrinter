@@ -6,7 +6,7 @@ import {
     createTextElement,
     STARTER_TEMPLATE
 } from "../../model/defaults.ts";
-import { suggestAddressBlock } from "../../model/merge.ts";
+import { fieldLines, suggestAddressBlock } from "../../model/merge.ts";
 import type { LabelDesign, LabelElement, SheetSpec } from "../../model/types.ts";
 
 /*
@@ -14,7 +14,7 @@ import type { LabelDesign, LabelElement, SheetSpec } from "../../model/types.ts"
  * barcode dropped on a return-address label is not bigger than the label.
  */
 
-export type InsertKind = "text" | "address" | "image" | "qr" | "barcode" | "rectangle" | "ellipse" | "line";
+export type InsertKind = "text" | "address" | "fields" | "image" | "qr" | "barcode" | "rectangle" | "ellipse" | "line";
 
 const round = (value: number) => Number(value.toFixed(4));
 
@@ -54,14 +54,19 @@ export function createElement(
             const height = Math.min(area.height, Math.max(0.25, area.height * 0.3));
             return createTextElement(boxAt(area, area.width * 0.7, height, cx, cy), template ?? "Text");
         }
-        case "address": {
-            const element = createTextElement(
+        case "address":
+            return createTextElement(
                 { x: area.x, y: area.y, width: round(area.width), height: round(area.height) },
-                fields.length > 0 ? suggestAddressBlock(fields) : STARTER_TEMPLATE,
+                template ?? (fields.length > 0 ? suggestAddressBlock(fields) : STARTER_TEMPLATE),
                 "Address"
             );
-            return element;
-        }
+        case "fields":
+            // Every column, one per line, filling the safe area: a starting point to cut down.
+            return createTextElement(
+                { x: area.x, y: area.y, width: round(area.width), height: round(area.height) },
+                template ?? fieldLines(fields),
+                "Fields"
+            );
         case "image":
             return createImageElement(boxAt(area, short * 0.8, short * 0.8, at?.x ?? area.x + short * 0.4, cy));
         case "qr":

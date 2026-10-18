@@ -62,8 +62,7 @@ const PATHS = {
     sparkle: "M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8zM19 16l.7 2.3L22 19l-2.3.7L19 22l-.7-2.3L16 19l2.3-.7z",
     help: "M12 3a9 9 0 110 18 9 9 0 010-18zM9.5 9a2.5 2.5 0 114 2c-.9.6-1.5 1.2-1.5 2.5M12 17h.01",
     clipboard: "M9 4h6v3H9zM7 5H5v16h14V5h-2",
-    numbers: "M5 8l2-2v12M10.5 8.5a2 2 0 013.5 1.5c0 2-3.5 3.5-3.5 6h4M17 7h3l-2 4a2.5 2.5 0 11-1.5 4.5",
-    calibrate: "M12 2v4M12 18v4M2 12h4M18 12h4M12 8a4 4 0 110 8 4 4 0 010-8z"
+    numbers: "M5 8l2-2v12M10.5 8.5a2 2 0 013.5 1.5c0 2-3.5 3.5-3.5 6h4M17 7h3l-2 4a2.5 2.5 0 11-1.5 4.5"
 } as const;
 
 export type IconName = keyof typeof PATHS;

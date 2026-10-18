@@ -2,9 +2,9 @@ import { memo, type CSSProperties, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import type { MergeContext } from "../model/merge.ts";
 import type { PlacedLabel } from "../model/paginate.ts";
-import { cellOrigin, labelsPerSheet, slotCell } from "../model/sheet.ts";
+import { cellOrigin, labelsPerSheet, slotCell, testInset, trailingMargins } from "../model/sheet.ts";
 import type { Calibration, FillOrder, LabelDesign, SheetSpec } from "../model/types.ts";
-import { CSS_PX_PER_INCH } from "../model/units.ts";
+import { CSS_PX_PER_INCH, formatDecimal, formatFriendlyInches, MM_PER_INCH } from "../model/units.ts";
 import { ElementVisual } from "./ElementVisual.tsx";
 
 /*
@@ -129,42 +129,56 @@ export function SheetPage({ sheet, design, labels, contextFor, ppi, fillOrder, o
 }
 
 /**
- * The alignment test: every position outlined, numbered, and crossed at its centre. Printed on
- * plain paper and held against a sheet of labels in front of a light, it shows which way and how
- * far the printer is off.
+ * The test sheet: a numbered box drawn just inside every label (see `testInset`). Printed on the
+ * label stock — or on plain paper held against a sheet of it in front of a window — every box
+ * should sit inside its label with the same gap all round. A box touching or crossing an edge
+ * means a measurement (or the printer) is off; which gap is wider says which way, and boxes that
+ * drift further off down or across the page point at a gap or pitch rather than a margin.
+ *
+ * The boxes follow the label's shape, rounded corners and ovals included, so the gap stays even
+ * the whole way round. A line of explanation goes in the top or bottom margin when there is room.
  */
 export function TestPage({ sheet, ppi, calibration }: { sheet: SheetSpec; ppi: number; calibration?: Calibration | null }) {
-    const radius = labelRadius(sheet, ppi);
-    const arm = Math.min(sheet.labelWidth, sheet.labelHeight) * 0.2 * ppi;
-    const fontSize = Math.max(6, Math.min(sheet.labelHeight * 0.18, 0.2) * ppi);
+    const inset = testInset(sheet);
+    const radius =
+        sheet.shape === "ellipse" ? "50%" : sheet.shape === "rounded" ? Math.max(0, sheet.cornerRadius - inset) * ppi : 0;
+    const numberSize = Math.max(5, Math.min(0.09, (sheet.labelHeight - 2 * inset) * 0.3) * ppi);
+    const insetText = `${formatFriendlyInches(inset)} (${formatDecimal(inset * MM_PER_INCH, 1)} mm)`;
+
+    // The caption needs a margin about a third of an inch deep, and sits in the middle of it, away
+    // from the edge most printers cannot reach.
+    const { bottom } = trailingMargins(sheet);
+    const captionTop =
+        sheet.marginTop >= 0.3 ? sheet.marginTop / 2 : bottom >= 0.3 ? sheet.pageHeight - bottom / 2 : null;
 
     return (
         <div className="lp-page" style={{ width: sheet.pageWidth * ppi, height: sheet.pageHeight * ppi }}>
             <div className="lp-page-content" style={{ transform: calibrationTransform(calibration, ppi) }}>
+                {captionTop !== null ? (
+                    <div
+                        className="lp-test-caption"
+                        style={{ top: captionTop * ppi, fontSize: 0.1 * ppi, transform: "translateY(-50%)" }}
+                    >
+                        Test sheet for {sheet.name}: every box is {insetText} inside its label, so each should show an even gap all
+                        round.
+                    </div>
+                ) : null}
                 {Array.from({ length: labelsPerSheet(sheet) }, (_, slot) => {
                     const { column, row } = slotCell(sheet, slot, "across");
                     const { x, y } = cellOrigin(sheet, column, row);
                     return (
                         <div
                             key={slot}
-                            className="lp-sheet-label lp-sheet-label-outline"
+                            className="lp-test-box"
                             style={{
-                                left: x * ppi,
-                                top: y * ppi,
-                                width: sheet.labelWidth * ppi,
-                                height: sheet.labelHeight * ppi,
+                                left: (x + inset) * ppi,
+                                top: (y + inset) * ppi,
+                                width: Math.max(0, sheet.labelWidth - 2 * inset) * ppi,
+                                height: Math.max(0, sheet.labelHeight - 2 * inset) * ppi,
                                 borderRadius: radius
                             }}
                         >
-                            <span
-                                className="lp-test-cross-h"
-                                style={{ left: `calc(50% - ${arm}px)`, top: "50%", width: arm * 2, height: 1 }}
-                            />
-                            <span
-                                className="lp-test-cross-v"
-                                style={{ left: "50%", top: `calc(50% - ${arm}px)`, width: 1, height: arm * 2 }}
-                            />
-                            <span className="lp-test-mark" style={{ left: 4, top: 2, fontSize }}>
+                            <span className="lp-test-mark" style={{ fontSize: numberSize }}>
                                 {slot + 1}
                             </span>
                         </div>

@@ -169,6 +169,11 @@ export function defaultCalibration(): Calibration {
     return { offsetX: 0, offsetY: 0, scaleX: 100, scaleY: 100 };
 }
 
+/** Whether a calibration moves or stretches anything. */
+export function isCalibrated(calibration: Calibration): boolean {
+    return calibration.offsetX !== 0 || calibration.offsetY !== 0 || calibration.scaleX !== 100 || calibration.scaleY !== 100;
+}
+
 export function defaultSession(): Session {
     return { version: 1, template: defaultTemplate(), data: null, excluded: [], print: defaultPrintOptions() };
 }

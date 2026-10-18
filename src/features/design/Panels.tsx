@@ -38,12 +38,18 @@ export function InsertPanel({ onInsert }: { onInsert: (kind: InsertKind) => void
 
 export function FieldPanel({
     fields,
+    usedFields,
     hasData,
-    onInsertField
+    onInsertField,
+    onAddAll
 }: {
     fields: readonly string[];
+    /** The fields somewhere on the label, by index into `fields`; their chips are marked. */
+    usedFields: ReadonlySet<number>;
     hasData: boolean;
     onInsertField: (field: string) => void;
+    /** Adds a text block with every field, one per line. */
+    onAddAll: () => void;
 }) {
     const startDrag = (field: string) => (event: DragEvent<HTMLButtonElement>) => {
         event.dataTransfer.setData(FIELD_MIME, field);
@@ -57,20 +63,22 @@ export function FieldPanel({
             <h3 id="lp-fields-heading">Fields</h3>
             <p className="lp-note lp-small">
                 {hasData
-                    ? "Click to insert into the selected text, or drag onto the label."
+                    ? "Click to insert into the selected text, or drag onto the label. Ticked ones are on the label."
                     : "Load records on the Data step to list their fields here."}
             </p>
             <div className="lp-field-list">
-                {fields.map((field) => (
+                {fields.map((field, index) => (
                     <button
                         key={field}
                         type="button"
-                        className="lp-field-chip"
+                        className={usedFields.has(index) ? "lp-field-chip lp-field-chip-used" : "lp-field-chip"}
                         draggable
                         title={`{{${field}}}`}
+                        aria-label={usedFields.has(index) ? `${field}, on the label` : field}
                         onDragStart={startDrag(field)}
                         onClick={() => onInsertField(field)}
                     >
+                        {usedFields.has(index) ? <Icon name="check" /> : null}
                         {field}
                     </button>
                 ))}
@@ -85,6 +93,13 @@ export function FieldPanel({
                     <Icon name="hash" /> Row number
                 </button>
             </div>
+            {fields.length > 0 ? (
+                <div>
+                    <EbButton className="lp-compact" onClick={onAddAll}>
+                        <Icon name="plus" /> Add all fields
+                    </EbButton>
+                </div>
+            ) : null}
         </section>
     );
 }

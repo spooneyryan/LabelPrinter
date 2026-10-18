@@ -298,10 +298,11 @@ export function detectAddressFields(fields: readonly string[]): Partial<Record<A
 }
 
 /**
- * A ready-made address block for the given columns: name, company, street lines, then
- * "City, State ZIP". Falls back to one line per column for data that is not an address list.
+ * The address block for the given columns — name, company, street lines, then "City, State ZIP" —
+ * or `null` when fewer than two of those lines can be made, which means the data is not an
+ * address list.
  */
-export function suggestAddressBlock(fields: readonly string[]): string {
+export function addressBlock(fields: readonly string[]): string | null {
     const parts = detectAddressFields(fields);
     const placeholder = (field: string | undefined) => (field === undefined ? null : `{{${field}}}`);
     const joinPresent = (separator: string, ...values: (string | null)[]) =>
@@ -330,13 +331,27 @@ export function suggestAddressBlock(fields: readonly string[]): string {
         placeholder(parts.country)
     ].filter((line): line is string => line !== null);
 
-    // Fewer than two recognised lines is not an address list; show the columns themselves.
-    if (lines.length < 2) {
-        return fields
-            .slice(0, 6)
-            .map((field) => `{{${field}}}`)
-            .join("\n");
-    }
+    return lines.length < 2 ? null : lines.join("\n");
+}
 
-    return lines.join("\n");
+/** Every column as a placeholder, one per line. */
+export function fieldLines(fields: readonly string[]): string {
+    return fields.map((field) => `{{${field}}}`).join("\n");
+}
+
+/**
+ * A ready-made address block for the given columns, falling back to the first few columns one per
+ * line for data that is not an address list. What the "Address block" button inserts.
+ */
+export function suggestAddressBlock(fields: readonly string[]): string {
+    return addressBlock(fields) ?? fieldLines(fields.slice(0, 6));
+}
+
+/**
+ * What a label shows when it is filled from loaded data: the address block for an address list
+ * (so a mailing label reads as one, and Phone and Email stay off it), and otherwise every column,
+ * one per line.
+ */
+export function suggestFieldsBlock(fields: readonly string[]): string {
+    return addressBlock(fields) ?? fieldLines(fields);
 }

@@ -155,6 +155,15 @@ export function spreadGrid(sheet: SheetSpec): SheetSpec {
     };
 }
 
+/**
+ * How far inside each label the test sheet draws its box: a sixteenth of an inch, or a tenth of
+ * the label on stock too small to spare that. Far enough in to show a gap on every side, close
+ * enough to the edge that a measurement out by a millimetre pushes a box over it.
+ */
+export function testInset(sheet: Pick<SheetSpec, "labelWidth" | "labelHeight">): number {
+    return Math.min(1 / 16, Math.min(sheet.labelWidth, sheet.labelHeight) * 0.1);
+}
+
 /** Whether two sheets put labels in the same places, ignoring their names. */
 export function sameLayout(a: Omit<SheetSpec, "presetId" | "name">, b: Omit<SheetSpec, "presetId" | "name">): boolean {
     const keys: (keyof Omit<SheetSpec, "presetId" | "name" | "shape">)[] = [
@@ -172,6 +181,18 @@ export function sameLayout(a: Omit<SheetSpec, "presetId" | "name">, b: Omit<Shee
     ];
 
     return a.shape === b.shape && keys.every((key) => Math.abs(a[key] - b[key]) < EPSILON);
+}
+
+export type ShapeCategory = "Rectangle" | "Square" | "Round" | "Oval";
+
+/** What shape a sheet's labels are, as a person would say it: a square is a rectangle with equal sides. */
+export function shapeCategory(sheet: Pick<SheetSpec, "shape" | "labelWidth" | "labelHeight">): ShapeCategory {
+    const equalSides = Math.abs(sheet.labelWidth - sheet.labelHeight) < 0.005;
+    if (sheet.shape === "ellipse") {
+        return equalSides ? "Round" : "Oval";
+    }
+
+    return equalSides ? "Square" : "Rectangle";
 }
 
 /** Lengths computed from other lengths are kept to a ten-thousandth, which is what the fields show. */

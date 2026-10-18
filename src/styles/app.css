@@ -156,6 +156,11 @@ body {
     padding-top: 0;
 }
 
+/* Catches the tab keys at a step's edge (see App.tsx) without being a box of its own. */
+.lp-step-keys {
+    display: contents;
+}
+
 .lp-step {
     flex: 1 1 auto;
     min-height: 0;
@@ -904,6 +909,13 @@ body {
     border-style: dashed;
 }
 
+/* A field the label already merges: ticked and tinted, still insertable again. */
+.lp-field-chip-used {
+    border-color: var(--eb-accent);
+    background: var(--eb-accent-soft);
+    color: var(--eb-accent);
+}
+
 .lp-layer {
     display: flex;
     align-items: center;
@@ -1328,18 +1340,43 @@ body {
     color: transparent;
 }
 
-.lp-test-mark {
+/* The test sheet: a dark hairline box inside each label. Border-box, so the outside of the line
+   is exactly the inset from the label's edge. */
+.lp-test-box {
     position: absolute;
-    display: grid;
-    place-items: center;
-    color: #55647d;
-    font-family: system-ui, sans-serif;
+    box-sizing: border-box;
+    border: 1px solid #1c1f24;
 }
 
-.lp-test-cross-h,
-.lp-test-cross-v {
+.lp-test-mark {
     position: absolute;
-    background: #c5291d;
+    left: 3px;
+    top: 2px;
+    color: #55647d;
+    font-family: system-ui, sans-serif;
+    line-height: 1;
+}
+
+.lp-test-caption {
+    position: absolute;
+    left: 0;
+    right: 0;
+    color: #55647d;
+    font-family: system-ui, sans-serif;
+    text-align: center;
+    white-space: nowrap;
+}
+
+.lp-test-row {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--eb-space-3);
+    padding-top: var(--eb-space-3);
+    border-top: 1px solid var(--eb-border);
+}
+
+.lp-test-row .eb-button {
+    flex: none;
 }
 
 .lp-dl {

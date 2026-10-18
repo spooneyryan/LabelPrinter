@@ -15,8 +15,10 @@ import {
 } from "../../import/importFile.ts";
 import { MAX_SEQUENCE, sequenceTable } from "../../import/sequence.ts";
 import { addRow, deleteField, deleteRows, insertField, renameField, setCell } from "../../model/dataOps.ts";
-import { buildFieldIndex, renameField as renameInTemplate, suggestAddressBlock, templateFields } from "../../model/merge.ts";
+import { renameField as renameInTemplate, templateFields } from "../../model/merge.ts";
+import { describeFields, planPopulate } from "../../model/populate.ts";
 import { sampleAddresses } from "../../model/sample.ts";
+import { createElement } from "../design/insert.ts";
 import type { DataTable, LabelElement } from "../../model/types.ts";
 import { useEditor, useStore } from "../../state/store.tsx";
 import { DataGrid } from "./DataGrid.tsx";
@@ -26,16 +28,11 @@ import { DataGrid } from "./DataGrid.tsx";
  * vCard), from cells pasted out of a spreadsheet, from a number sequence, or are typed in. Either
  * way they land in a table that can be corrected and trimmed before printing.
  *
- * A design built before the data arrived usually names fields the data spells differently. When
- * that happens the step offers to rebuild the address block from the real columns rather than
- * leaving the labels printing blanks.
+ * Loading data puts its fields on the label, so the Design step opens on a label that already
+ * merges them: populate.ts decides when that happens on its own and when it asks first.
  */
 
 const fileStore = new BrowserFileSaveStore();
-
-function templatesOf(elements: readonly LabelElement[]): string[] {
-    return elements.flatMap((element) => ("template" in element ? [element.template] : []));
-}
 
 export function DataStep({ onShowDesign }: { onShowDesign: () => void }) {
     const { state, dispatch } = useStore();
@@ -51,28 +48,36 @@ export function DataStep({ onShowDesign }: { onShowDesign: () => void }) {
 
     const { data, excluded, source, sourceDetails } = state;
 
-    /** Offers to rebuild the address block when the design names fields the new data lacks. */
-    const reconcileDesign = async (table: DataTable) => {
-        const index = buildFieldIndex(table.fields);
-        const used = templatesOf(state.template.design.elements).flatMap(templateFields);
-        const missing = [...new Set(used.filter((field) => index.resolve(field) === undefined))];
-        const target = state.template.design.elements.find(
-            (element) => element.type === "text" && templateFields(element.template).length > 0
-        );
-
-        if (missing.length === 0 || !target || table.fields.length === 0) {
+    /** Puts the data's fields on the label, or asks first when the label already uses some of them. */
+    const populateDesign = async (table: DataTable) => {
+        const { sheet, design } = state.template;
+        const plan = planPopulate(design, table.fields);
+        if (plan.kind === "none") {
             return;
         }
 
-        const rebuild = await dialogs.confirm(
-            `The design uses ${missing.length === 1 ? "a field" : "fields"} this data doesn't have: ${missing.map((field) => `“${field}”`).join(", ")}. Build a new address block from its columns instead?`,
-            { title: "Match the design to the data", confirmLabel: "Rebuild address block", cancelLabel: "Keep my design" }
-        );
+        if (plan.kind === "ask") {
+            const replace = await dialogs.confirm(
+                `The label uses ${plan.missing.length === 1 ? "a field" : "fields"} this data doesn't have: ${plan.missing.map((field) => `“${field}”`).join(", ")}. Replace its text with the data's fields?`,
+                { title: "Match the label to the data", confirmLabel: "Use the data's fields", cancelLabel: "Keep my label" }
+            );
 
-        if (rebuild) {
-            editor.editElement(target.id, { template: suggestAddressBlock(table.fields) } as Partial<LabelElement>);
-            toast.showSuccess("The address block now uses your columns. Fine-tune it on the Design step.", { durationMs: 5000 });
+            if (!replace) {
+                return;
+            }
         }
+
+        if (plan.kind === "add") {
+            const element = { ...createElement("fields", sheet, design, table.fields, undefined, plan.template), name: plan.name };
+            editor.editDesign((current) => ({ ...current, elements: [...current.elements, element] }));
+        } else {
+            editor.editElement(plan.elementId, { template: plan.template, ...(plan.name ? { name: plan.name } : {}) } as Partial<LabelElement>);
+        }
+
+        toast.showSuccess(`It shows ${describeFields(templateFields(plan.template))}. Undo (Ctrl+Z) puts back what was there.`, {
+            title: "The data's fields are on the label",
+            durationMs: 6000
+        });
     };
 
     const confirmReplace = async () =>
@@ -94,7 +99,7 @@ export function DataStep({ onShowDesign }: { onShowDesign: () => void }) {
             toast.showSuccess(`${table.rows.length} record${table.rows.length === 1 ? "" : "s"} loaded from ${table.source}.`);
         }
 
-        await reconcileDesign(table);
+        await populateDesign(table);
     };
 
     const openFile = async (file: File) => {
@@ -116,6 +121,8 @@ export function DataStep({ onShowDesign }: { onShowDesign: () => void }) {
         try {
             const { table, details } = sourceTable(next);
             dispatch({ type: "setData", data: table, source: next, details });
+            // A header switch or a new separator renames every column: the label follows.
+            void populateDesign(table);
         } catch (error) {
             toast.showError(error instanceof Error ? error.message : String(error));
         }

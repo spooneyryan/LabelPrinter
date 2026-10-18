@@ -1,5 +1,7 @@
+import { shapeCategory, type ShapeCategory } from "./sheet.ts";
+import { TSS_PRESETS } from "./presets-tss.ts";
 import type { SheetSpec } from "./types.ts";
-import { formatFriendlyInches } from "./units.ts";
+import { formatFriendlyInches, parseLength } from "./units.ts";
 
 /*
  * Label stock for US Letter (8½ × 11) sheets, measured from the manufacturers' published
@@ -8,8 +10,11 @@ import { formatFriendlyInches } from "./units.ts";
  *
  * "Compatible" lists the other product codes cut to the same layout — the same die, a different
  * finish — so searching for any of them finds the sheet.
+ *
+ * Two makers so far: Avery, below, and The Shipping Store, in presets-tss.ts.
  */
 
+/** What a sheet is for (Avery sells by use) or, failing that, its shape (The Shipping Store). */
 export type PresetKind =
     | "Address"
     | "Shipping"
@@ -17,15 +22,21 @@ export type PresetKind =
     | "File folder"
     | "Business card"
     | "Name badge"
-    | "Full and half sheet";
+    | "Full and half sheet"
+    | ShapeCategory;
 
 export interface SheetPreset {
     id: string;
     brand: string;
+    /** The maker's template or product code: "5160", "S001". */
     code: string;
     kind: PresetKind;
     compatible: readonly string[];
     sheet: Omit<SheetSpec, "presetId" | "name">;
+    /** More words to find it by: the maker's own product name. */
+    keywords?: string;
+    /** Something to know before using it, shown with the preset. */
+    note?: string;
 }
 
 const LETTER = { pageWidth: 8.5, pageHeight: 11 } as const;
@@ -34,7 +45,7 @@ const LETTER = { pageWidth: 8.5, pageHeight: 11 } as const;
 const ROUNDED = { shape: "rounded", cornerRadius: 0.0625 } as const;
 const SQUARE = { shape: "rectangle", cornerRadius: 0 } as const;
 
-export const SHEET_PRESETS: readonly SheetPreset[] = [
+const AVERY_PRESETS: readonly SheetPreset[] = [
     {
         id: "avery-5160",
         brand: "Avery",
@@ -304,10 +315,66 @@ export const SHEET_PRESETS: readonly SheetPreset[] = [
     }
 ];
 
+/** Every preset: Avery first, then The Shipping Store, each in code order. */
+export const SHEET_PRESETS: readonly SheetPreset[] = [...AVERY_PRESETS, ...TSS_PRESETS];
+
+/** The makers with presets, in list order. */
+export const PRESET_BRANDS: readonly string[] = [...new Set(SHEET_PRESETS.map((preset) => preset.brand))];
+
 export const DEFAULT_PRESET_ID = "avery-5160";
 
 export function findPreset(id: string): SheetPreset | undefined {
     return SHEET_PRESETS.find((preset) => preset.id === id);
+}
+
+/**
+ * Reads a search for a label size — `1x1`, `1" x 1"`, `2 5/8 × 1`, `66.7mm x 25.4mm` — into its
+ * two sides in inches, or `null` when the text is not a size.
+ */
+export function parseSizeQuery(text: string): { a: number; b: number } | null {
+    const sides = text.trim().split(/\s*[x×*]\s*/i);
+    if (sides.length !== 2) {
+        return null;
+    }
+
+    const a = parseLength(sides[0]);
+    const b = parseLength(sides[1]);
+    return a !== null && b !== null && a > 0 && b > 0 ? { a, b } : null;
+}
+
+/**
+ * How far a label may be from the size searched for and still match. Makers name labels by their
+ * nominal size: The Shipping Store's "2 5/8 × 1" (R007) is cut at 2.59″, and its "2½″ circle"
+ * (C005) at 2.45″.
+ */
+const SIZE_TOLERANCE = 0.06;
+
+/**
+ * Whether a preset matches a search: a size query matches labels of that size either way round;
+ * anything else matches the maker, code, compatible codes, kind, summary or product name.
+ */
+export function matchesSearch(preset: SheetPreset, search: string): boolean {
+    const text = search.trim().toLowerCase();
+    if (text === "") {
+        return true;
+    }
+
+    const size = parseSizeQuery(text);
+    if (size) {
+        const { labelWidth: w, labelHeight: h } = preset.sheet;
+        const near = (x: number, y: number) => Math.abs(x - y) <= SIZE_TOLERANCE;
+        return (near(w, size.a) && near(h, size.b)) || (near(w, size.b) && near(h, size.a));
+    }
+
+    return [presetTitle(preset), preset.code, preset.kind, ...preset.compatible, presetSummary(preset), preset.keywords ?? ""]
+        .join(" ")
+        .toLowerCase()
+        .includes(text);
+}
+
+/** The shape a preset's labels are, for filtering: rectangle, square, round or oval. */
+export function presetShape(preset: SheetPreset): ShapeCategory {
+    return shapeCategory(preset.sheet);
 }
 
 /** `"Avery 5160"`. */
