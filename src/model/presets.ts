@@ -1,17 +1,21 @@
-import { shapeCategory, type ShapeCategory } from "./sheet.ts";
+import { A4_PRESETS } from "./presets-a4.ts";
+import { EQUIVALENTS, LETTER_PRESETS, SIMILAR } from "./presets-letter.ts";
+import { pageSizeOf, shapeCategory, type ShapeCategory } from "./sheet.ts";
 import { TSS_PRESETS } from "./presets-tss.ts";
 import type { SheetSpec } from "./types.ts";
-import { formatFriendlyInches, parseLength } from "./units.ts";
+import { formatDecimal, formatFriendlyInches, MM_PER_INCH, parseLength } from "./units.ts";
 
 /*
- * Label stock for US Letter (8½ × 11) sheets, measured from the manufacturers' published
- * templates. The numbers are the sheet's own: the first label's offset from the page corner and
- * the gaps between neighbours (template specs quote "pitch", which is label size plus gap).
+ * Label stock, measured from the manufacturers' published templates. The numbers are the sheet's
+ * own: the first label's offset from the page corner and the gaps between neighbours (template
+ * specs quote "pitch", which is label size plus gap).
  *
- * "Compatible" lists the other product codes cut to the same layout — the same die, a different
- * finish — so searching for any of them finds the sheet.
+ * "Compatible" lists the maker's other product codes cut to the same layout — the same die, a
+ * different finish — and "equivalents" other makers' codes for it, so searching for any of them
+ * finds the sheet.
  *
- * Two makers so far: Avery, below, and The Shipping Store, in presets-tss.ts.
+ * Avery's classic US Letter sheets are below; its other popular ones and OnlineLabels' are in
+ * presets-letter.ts, The Shipping Store's in presets-tss.ts, and A4 stock in presets-a4.ts.
  */
 
 /** What a sheet is for (Avery sells by use) or, failing that, its shape (The Shipping Store). */
@@ -23,6 +27,7 @@ export type PresetKind =
     | "Business card"
     | "Name badge"
     | "Full and half sheet"
+    | "CD/DVD"
     | ShapeCategory;
 
 export interface SheetPreset {
@@ -32,6 +37,10 @@ export interface SheetPreset {
     code: string;
     kind: PresetKind;
     compatible: readonly string[];
+    /** Other makers' codes for the same layout, from their published cross-references. */
+    equivalents?: readonly string[];
+    /** Other makers' sheets with the same label size and count, whose margins may differ a little. */
+    similar?: readonly string[];
     sheet: Omit<SheetSpec, "presetId" | "name">;
     /** More words to find it by: the maker's own product name. */
     keywords?: string;
@@ -315,8 +324,24 @@ const AVERY_PRESETS: readonly SheetPreset[] = [
     }
 ];
 
-/** Every preset: Avery first, then The Shipping Store, each in code order. */
-export const SHEET_PRESETS: readonly SheetPreset[] = [...AVERY_PRESETS, ...TSS_PRESETS];
+/** Adds the cross-referenced codes for presets defined without them. */
+const withCrossReferences = (preset: SheetPreset): SheetPreset => ({
+    ...preset,
+    equivalents: preset.equivalents ?? EQUIVALENTS[preset.id],
+    similar: preset.similar ?? SIMILAR[preset.id]
+});
+
+/**
+ * Every preset: US Letter first — Avery's classic sheets, then its other popular ones, The
+ * Shipping Store, OnlineLabels — then A4.
+ */
+export const SHEET_PRESETS: readonly SheetPreset[] = [
+    ...AVERY_PRESETS,
+    ...LETTER_PRESETS.filter((preset) => preset.brand === "Avery"),
+    ...TSS_PRESETS,
+    ...LETTER_PRESETS.filter((preset) => preset.brand !== "Avery"),
+    ...A4_PRESETS
+].map(withCrossReferences);
 
 /** The makers with presets, in list order. */
 export const PRESET_BRANDS: readonly string[] = [...new Set(SHEET_PRESETS.map((preset) => preset.brand))];
@@ -366,10 +391,30 @@ export function matchesSearch(preset: SheetPreset, search: string): boolean {
         return (near(w, size.a) && near(h, size.b)) || (near(w, size.b) && near(h, size.a));
     }
 
-    return [presetTitle(preset), preset.code, preset.kind, ...preset.compatible, presetSummary(preset), preset.keywords ?? ""]
-        .join(" ")
-        .toLowerCase()
-        .includes(text);
+    return [
+        presetTitle(preset),
+        preset.code,
+        preset.kind,
+        ...preset.compatible,
+        ...(preset.equivalents ?? []),
+        ...(preset.similar ?? []),
+        presetSummary(preset),
+        preset.keywords ?? ""
+    ].some((field) => startsAWord(field.toLowerCase(), text));
+}
+
+/**
+ * Whether `query` appears in `text` at the start of a word: "516" finds 5160, but "8160" doesn't
+ * find J8160, an A4 sheet that has nothing to do with Avery 8160.
+ */
+function startsAWord(text: string, query: string): boolean {
+    for (let at = text.indexOf(query); at >= 0; at = text.indexOf(query, at + 1)) {
+        if (at === 0 || !/[a-z0-9]/.test(text[at - 1])) {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 /** The shape a preset's labels are, for filtering: rectangle, square, round or oval. */
@@ -382,11 +427,20 @@ export function presetTitle(preset: SheetPreset): string {
     return `${preset.brand} ${preset.code}`;
 }
 
-/** `"Address · 1″ × 2⅝″ · 30 per sheet"` — height first, as the packaging writes it. */
+/**
+ * `"Address · 1″ × 2⅝″ · 30 per sheet"` — height first, as the packaging writes it. A4 stock is
+ * sold in millimetres, so it is described in them: `"Address · 38.1 × 63.5 mm · 21 per sheet · A4"`.
+ */
 export function presetSummary(preset: SheetPreset): string {
     const { labelWidth, labelHeight, columns, rows } = preset.sheet;
     const count = columns * rows;
-    return `${preset.kind} · ${formatFriendlyInches(labelHeight)} × ${formatFriendlyInches(labelWidth)} · ${count} per sheet`;
+    const page = pageSizeOf(preset.sheet);
+    const mm = (inches: number) => formatDecimal(inches * MM_PER_INCH, 1);
+    const size =
+        page?.id === "a4"
+            ? `${mm(labelHeight)} × ${mm(labelWidth)} mm`
+            : `${formatFriendlyInches(labelHeight)} × ${formatFriendlyInches(labelWidth)}`;
+    return `${preset.kind} · ${size} · ${count} per sheet${page && page.id !== "letter" ? ` · ${page.name}` : ""}`;
 }
 
 /** The sheet a preset describes, named after it. */

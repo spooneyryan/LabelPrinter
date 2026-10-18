@@ -15,6 +15,8 @@ import {
 import {
     centerGrid,
     labelsPerSheet,
+    PAGE_SIZES,
+    pageSizeOf,
     sameLayout,
     spreadGrid,
     testInset,
@@ -36,12 +38,24 @@ import { CornerDetail, describeMeasure, MeasureLegend, SheetDiagram, SheetThumb 
 const ALL_MAKERS = "All makers";
 const ANY_SHAPE = "Any shape";
 const SHAPE_FILTERS: readonly (typeof ANY_SHAPE | ShapeCategory)[] = [ANY_SHAPE, "Rectangle", "Square", "Round", "Oval"];
+const ANY_PAGE = "Any page";
+const PAGE_FILTERS = [ANY_PAGE, ...PAGE_SIZES.filter((page) => SHEET_PRESETS.some((preset) => pageSizeOf(preset.sheet) === page)).map((page) => page.name)];
+
+const PAGE_OPTIONS = PAGE_SIZES.map((page) => ({
+    value: page.id as string,
+    label: page.id === "a4" ? "A4 (210 × 297 mm)" : `${page.name} (${formatFriendlyInches(page.width)} × ${formatFriendlyInches(page.height)})`
+}));
 
 const SHAPES: { value: LabelShape; label: string }[] = [
     { value: "rounded", label: "Rounded corners" },
     { value: "rectangle", label: "Square corners" },
     { value: "ellipse", label: "Round or oval" }
 ];
+
+/** The first few codes of a long cross-reference; search still finds the rest. */
+function listCodes(codes: readonly string[], shown = 5): string {
+    return codes.length <= shown ? codes.join(", ") : `${codes.slice(0, shown).join(", ")} +${codes.length - shown} more`;
+}
 
 /** A field label carrying the letter that marks it on the corner detail. */
 function tagged(text: string, letter: string) {
@@ -71,6 +85,7 @@ export function SheetStep({ onPrintTest, calibrated }: SheetStepProps) {
     const [search, setSearch] = useState("");
     const [maker, setMaker] = useState(ALL_MAKERS);
     const [shape, setShape] = useState<(typeof SHAPE_FILTERS)[number]>(ANY_SHAPE);
+    const [page, setPage] = useState(ANY_PAGE);
 
     const presets = useMemo(
         () =>
@@ -78,10 +93,12 @@ export function SheetStep({ onPrintTest, calibrated }: SheetStepProps) {
                 (preset) =>
                     (maker === ALL_MAKERS || preset.brand === maker) &&
                     (shape === ANY_SHAPE || presetShape(preset) === shape) &&
+                    (page === ANY_PAGE || pageSizeOf(preset.sheet)?.name === page) &&
                     matchesSearch(preset, search)
             ),
-        [maker, shape, search]
+        [maker, shape, page, search]
     );
+    const currentPage = pageSizeOf(sheet);
 
     const issues = validateSheet(sheet, unit);
     const hasErrors = issues.some((issue) => issue.severity === "error");
@@ -164,6 +181,20 @@ export function SheetStep({ onPrintTest, calibrated }: SheetStepProps) {
                             </EbButton>
                         ))}
                     </div>
+                    {PAGE_FILTERS.length > 2 ? (
+                        <div className="lp-preset-filters" role="group" aria-label="Page size">
+                            {PAGE_FILTERS.map((option) => (
+                                <EbButton
+                                    key={option}
+                                    className="lp-chip lp-toggle"
+                                    aria-pressed={page === option}
+                                    onClick={() => setPage(option)}
+                                >
+                                    {option}
+                                </EbButton>
+                            ))}
+                        </div>
+                    ) : null}
                     <span className="lp-muted lp-small" aria-live="polite">
                         {presets.length === SHEET_PRESETS.length ? `${presets.length} sheets` : `${presets.length} of ${SHEET_PRESETS.length} sheets`}
                     </span>
@@ -191,6 +222,18 @@ export function SheetStep({ onPrintTest, calibrated }: SheetStepProps) {
                                         <>
                                             <br />
                                             <span className="lp-preset-summary">Also {preset.compatible.join(", ")}</span>
+                                        </>
+                                    ) : null}
+                                    {preset.equivalents?.length ? (
+                                        <>
+                                            <br />
+                                            <span className="lp-preset-summary">Same as {listCodes(preset.equivalents)}</span>
+                                        </>
+                                    ) : null}
+                                    {preset.similar?.length ? (
+                                        <>
+                                            <br />
+                                            <span className="lp-preset-summary">Same size and count: {listCodes(preset.similar)}</span>
                                         </>
                                     ) : null}
                                     {preset.note ? (
@@ -257,10 +300,28 @@ export function SheetStep({ onPrintTest, calibrated }: SheetStepProps) {
                         value={sheet.name}
                         onValueChange={(name) => editor.editSheet((current) => ({ ...current, name: name.trim() || current.name }))}
                     />
-                    <p className="lp-note">
-                        Page: US Letter, {formatFriendlyInches(sheet.pageWidth)} × {formatFriendlyInches(sheet.pageHeight)}. Lengths take
-                        decimals, fractions like 2 5/8, or millimetres like 66.7mm.
-                    </p>
+                    <EbSelect<string>
+                        label="Page"
+                        options={
+                            currentPage
+                                ? PAGE_OPTIONS
+                                : [
+                                      ...PAGE_OPTIONS,
+                                      {
+                                          value: "other",
+                                          label: `${describeMeasure(sheet.pageWidth, unit)} × ${describeMeasure(sheet.pageHeight, unit)}`
+                                      }
+                                  ]
+                        }
+                        value={currentPage?.id ?? "other"}
+                        onValueChange={(id) => {
+                            const next = PAGE_SIZES.find((candidate) => candidate.id === id);
+                            if (next) {
+                                editMeasurements({ pageWidth: next.width, pageHeight: next.height }, "sheet:page");
+                            }
+                        }}
+                    />
+                    <p className="lp-note">Lengths take decimals, fractions like 2 5/8, or millimetres like 66.7mm.</p>
                     <div className="lp-field-grid">
                         <LengthField
                             label={tagged("Label width", "C")}

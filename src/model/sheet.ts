@@ -1,5 +1,5 @@
 import type { FillOrder, SheetSpec } from "./types.ts";
-import { describeLength, type LengthUnit } from "./units.ts";
+import { describeLength, MM_PER_INCH, type LengthUnit } from "./units.ts";
 
 /*
  * Sheet geometry: where each label sits on the page, and whether a set of measurements describes a
@@ -14,6 +14,29 @@ import { describeLength, type LengthUnit } from "./units.ts";
 
 /** Anything closer than this is the same length: a thousandth of an inch is below any printer. */
 const EPSILON = 0.001;
+
+export interface PageSize {
+    id: "letter" | "a4";
+    name: string;
+    /** Inches. */
+    width: number;
+    height: number;
+}
+
+/** The page sizes label stock comes on: US Letter in North America, A4 nearly everywhere else. */
+export const PAGE_SIZES: readonly PageSize[] = [
+    { id: "letter", name: "US Letter", width: 8.5, height: 11 },
+    { id: "a4", name: "A4", width: 210 / MM_PER_INCH, height: 297 / MM_PER_INCH }
+];
+
+/** The standard page a sheet is, or null for a page of some other size. */
+export function pageSizeOf(sheet: Pick<SheetSpec, "pageWidth" | "pageHeight">): PageSize | null {
+    return (
+        PAGE_SIZES.find(
+            (page) => Math.abs(page.width - sheet.pageWidth) < EPSILON * 10 && Math.abs(page.height - sheet.pageHeight) < EPSILON * 10
+        ) ?? null
+    );
+}
 
 export function labelsPerSheet(sheet: SheetSpec): number {
     return Math.max(0, sheet.columns) * Math.max(0, sheet.rows);

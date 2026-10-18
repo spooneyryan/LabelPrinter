@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import { findPreset, matchesSearch, parseSizeQuery, presetShape, presetSummary, presetTitle, SHEET_PRESETS } from "../src/model/presets.ts";
 import { TSS_LAYOUTS } from "../src/model/presets-tss.ts";
+import { pageSizeOf } from "../src/model/sheet.ts";
 
 const ids = (search: string) => SHEET_PRESETS.filter((preset) => matchesSearch(preset, search)).map((preset) => preset.id);
 
@@ -54,6 +55,32 @@ describe("The Shipping Store templates", () => {
     });
 });
 
+describe("more makers and A4", () => {
+    test("every preset has a unique id", () => {
+        assert.equal(new Set(SHEET_PRESETS.map((preset) => preset.id)).size, SHEET_PRESETS.length);
+    });
+
+    test("A4 sheets are A4 and described in millimetres", () => {
+        const l7160 = findPreset("avery-l7160")!;
+        assert.equal(pageSizeOf(l7160.sheet)?.name, "A4");
+        assert.equal(presetSummary(l7160), "Address · 38.1 × 63.5 mm · 21 per sheet · A4");
+        assert.equal(pageSizeOf(findPreset("avery-5160")!.sheet)?.name, "US Letter");
+    });
+
+    test("Avery L7160's geometry is Herma 4677's die, in inches", () => {
+        const sheet = findPreset("avery-l7160")!.sheet;
+        assert.equal(sheet.labelWidth, 2.5);
+        assert.equal(sheet.labelHeight, 1.5);
+        assert.equal(sheet.marginTop, 0.59646); // 15.15 mm
+        assert.equal(sheet.gapX, 0.1); // 2.54 mm
+    });
+
+    test("cross-references reach the sheets defined before them", () => {
+        assert.ok(findPreset("avery-5160")!.equivalents?.includes("OL875"));
+        assert.ok(findPreset("tss-c005")!.similar?.includes("Avery 5294"));
+    });
+});
+
 describe("searching", () => {
     test("by template code", () => {
         assert.deepEqual(ids("S001"), ["tss-s001", "tss-s001a"]);
@@ -65,7 +92,7 @@ describe("searching", () => {
     });
 
     test("by size, either way round and however it is typed", () => {
-        const square = ["tss-c002", "tss-s001", "tss-s001a"];
+        const square = ["avery-94500", "tss-c002", "tss-s001", "tss-s001a", "onlinelabels-ol5425"];
         assert.deepEqual(ids("1x1"), square);
         assert.deepEqual(ids('1" x 1"'), square);
         assert.deepEqual(ids("25.4mm × 25.4mm"), square);
@@ -75,6 +102,19 @@ describe("searching", () => {
 
     test("by words in the maker's product name", () => {
         assert.deepEqual(ids("clear glossy"), ["tss-r007"]);
+    });
+
+    test("by another maker's code for the same sheet", () => {
+        assert.deepEqual(ids("OL875"), ["avery-5160"]);
+        assert.deepEqual(ids("S-5042"), ["avery-5160"]);
+        assert.deepEqual(ids("Herma 4677"), ["avery-l7160"]);
+        assert.deepEqual(ids("J8160"), ["avery-l7160"]);
+        assert.deepEqual(ids("22807"), ["tss-c004a"]);
+    });
+
+    test("codes match from the start, not from inside another code", () => {
+        assert.ok(ids("516").includes("avery-5160"));
+        assert.ok(!ids("8160").includes("avery-l7160"));
     });
 
     test("size queries are only sizes", () => {

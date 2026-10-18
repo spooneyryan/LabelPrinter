@@ -32,12 +32,18 @@ published, switch to the feed the way Git Client does:
 
 The app is four steps, visited in any order:
 
-1. **Sheet** — the label stock. 81 US Letter presets: fourteen Avery sheets (5160, 5161, 5162,
-   5159, 5163, 5164, 5168, 5167, 5195, 5366, 5371, 5395, 5126, 5165 and the products cut to the
-   same layouts) and all 67 of The Shipping Store's templates (C001–C006, R001–R044A,
-   S001–S006U, V001–V004A — the code their product pages say to use), filterable by maker and
-   shape and searchable by code or by size (`1x1`, `2 5/8 x 1`); or a custom sheet typed in from
-   a ruler. Lengths accept
+1. **Sheet** — the label stock. 150 presets:
+   - **US Letter (123):** 53 Avery sheets (the classic 5160 family, plus the most used rounds,
+     squares, CD/DVD, Print-to-the-Edge and Presta layouts), all 67 of The Shipping Store's
+     templates (C001–C006, R001–R044A, S001–S006U, V001–V004A — the code their product pages say
+     to use), and 3 OnlineLabels sheets with no Avery twin.
+   - **A4 (27):** Avery L-series (L7160, L7163, L7162, L7173, L7165, L7651…), Avery Zweckform
+     (3475, 3652, 3651…) and Herma.
+
+   Other makers' codes for the same sheet (OnlineLabels OL…, SheetLabels SL…, Worldlabel WL-…,
+   Uline S-…, Herma) are listed with it and searchable, so the code on any box finds its sheet.
+   Presets filter by maker, shape and page size, and search by code or by size (`1x1`,
+   `2 5/8 x 1`); or type in a custom sheet from a ruler, on US Letter or A4. Lengths accept
    decimals, fractions (`2 5/8`, `2⅝`) and millimetres (`66.7mm`). A corner detail letters each
    measurement (A–F) against the form. **Test** prints a box 1/16″ inside every label (see
    Printing) to check the measurements before designing anything. Changing the label size
@@ -92,7 +98,11 @@ computed once, in inches, so the designer, the preview and the printed page brea
 
 The Shipping Store's geometry comes from their own online Label Designer, which embeds each
 layout's measurements in millimetres; `src/model/presets-tss.ts` keeps them exactly as published
-(October 2026) and says how to refresh them when new templates appear.
+(October 2026) and says how to refresh them when new templates appear. The other US Letter
+sheets (`presets-letter.ts`) come from OnlineLabels' and Avery's published template specs; the A4
+sheets (`presets-a4.ts`) from Herma's die templates, or Label Planet's where Herma has no match,
+since Avery publishes only A4 label sizes. A preset whose margins came from another maker's sheet
+of the same size says so. Every preset is tested to fit its page with even margins.
 
 ## Printing
 
