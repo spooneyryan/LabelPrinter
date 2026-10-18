@@ -47,7 +47,8 @@ The app is four steps, visited in any order:
    records out of the merge.
 3. **Design** — the label. Text, address blocks, images, QR codes, Code 128 barcodes, rectangles,
    ellipses and lines, dragged and resized on the canvas (EbDraggable and EbResizeBox) with
-   snapping, layered with a sortable list, and edited in the inspector. Step through the records
+   snapping to a 1/32″ grid (0.5 mm in millimetres) — arrows move one step, Shift+arrows ¼″
+   (5 mm) — layered with a sortable list, and edited in the inspector. Step through the records
    to see each label; the status bar names the records whose text will not fit even shrunk, or
    whose barcode value cannot be encoded.
 4. **Print** — copies per record (grouped or collated), fill order, positions already used on a

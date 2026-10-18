@@ -4,6 +4,7 @@ import { ToggleButton, useUnit } from "../../components/fields.tsx";
 import { Icon } from "../../components/Icon.tsx";
 import { includedRows } from "../../model/dataOps.ts";
 import { duplicateElement } from "../../model/defaults.ts";
+import { SNAP_GRIDS } from "../../model/grid.ts";
 import { buildFieldIndex, placeholderContext, ROW_NUMBER_FIELD, templateFields, type MergeContext } from "../../model/merge.ts";
 import type { LabelElement } from "../../model/types.ts";
 import { formatFriendlyInches, MM_PER_INCH } from "../../model/units.ts";
@@ -48,6 +49,7 @@ export function DesignStep({ ui, onUiChange }: { ui: DesignUi; onUiChange: (patc
     const { state } = useStore();
     const editor = useEditor();
     const unit = useUnit();
+    const grid = SNAP_GRIDS[unit];
     const templateRef = useRef<TemplateEditorHandle>(null);
     const [ppi, setPpi] = useState(96);
 
@@ -241,7 +243,7 @@ export function DesignStep({ ui, onUiChange }: { ui: DesignUi; onUiChange: (patc
                             value={ui.zoom}
                             onValueChange={(zoom) => zoom !== null && onUiChange({ zoom })}
                         />
-                        <EbTooltip text={unit === "mm" ? "Snap to a 1 mm grid" : "Snap to a 1/16″ grid"}>
+                        <EbTooltip text={`Snap to a ${grid.label} grid`}>
                             <ToggleButton
                                 className="lp-compact"
                                 pressed={ui.snap}
@@ -260,7 +262,7 @@ export function DesignStep({ ui, onUiChange }: { ui: DesignUi; onUiChange: (patc
                     context={context}
                     selectedId={ui.selectedId}
                     zoom={ui.zoom}
-                    snapStep={ui.snap ? (unit === "mm" ? 1 / MM_PER_INCH : 1 / 16) : null}
+                    grid={ui.snap ? grid : null}
                     onSelect={select}
                     onMove={onMove}
                     onResize={onResize}

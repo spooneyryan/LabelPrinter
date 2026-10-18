@@ -1,5 +1,6 @@
 import { EbDraggable, EbResizeBox, EbResizeHandles } from "@electricblazor/react";
 import { memo, useEffect, useRef, useState, type DragEvent, type KeyboardEvent, type PointerEvent } from "react";
+import { gridLines, linePositions, type SnapGrid } from "../../model/grid.ts";
 import type { MergeContext } from "../../model/merge.ts";
 import type { LabelDesign, LabelElement, SheetSpec } from "../../model/types.ts";
 import { CSS_PX_PER_INCH, snapTo } from "../../model/units.ts";
@@ -26,8 +27,8 @@ export interface CanvasProps {
     context: MergeContext;
     selectedId: string | null;
     zoom: Zoom;
-    /** The snapping grid in inches, or null for free placement. */
-    snapStep: number | null;
+    /** The snapping grid, or null for free placement. */
+    grid: SnapGrid | null;
     onSelect: (id: string | null) => void;
     onMove: (id: string, axis: "x" | "y", value: number) => void;
     onResize: (id: string, axis: "width" | "height", value: number) => void;
@@ -41,13 +42,15 @@ export interface CanvasProps {
 const MIN_PPI = 20;
 const MAX_PPI = 1600;
 const STAGE_PADDING = 48;
+/** What an arrow key moves an element by when it is not snapping; Shift moves eight times that. */
+const FREE_STEP = 1 / 32;
 
 interface CanvasElementProps {
     element: LabelElement;
     ppi: number;
     selected: boolean;
     context: MergeContext;
-    snapStep: number | null;
+    grid: SnapGrid | null;
     onSelect: (id: string | null) => void;
     onMove: CanvasProps["onMove"];
     onResize: CanvasProps["onResize"];
@@ -59,7 +62,7 @@ const CanvasElement = memo(function CanvasElement({
     ppi,
     selected,
     context,
-    snapStep,
+    grid,
     onSelect,
     onMove,
     onResize,
@@ -67,10 +70,11 @@ const CanvasElement = memo(function CanvasElement({
 }: CanvasElementProps) {
     const toInches = (pixels: number) => {
         const inches = pixels / ppi;
-        return snapStep ? snapTo(inches, snapStep) : Number(inches.toFixed(4));
+        return grid ? snapTo(inches, grid.step) : Number(inches.toFixed(4));
     };
 
-    const keyStep = (snapStep ?? 1 / 32) * ppi;
+    const keyStep = (grid?.step ?? FREE_STEP) * ppi;
+    const keyStepLarge = (grid?.major ?? FREE_STEP * 8) * ppi;
     const className = [
         "lp-element",
         selected ? "lp-element-selected" : "",
@@ -90,7 +94,7 @@ const CanvasElement = memo(function CanvasElement({
             boundsSelector=".lp-label-surface"
             disabled={element.locked}
             step={keyStep}
-            stepLarge={keyStep * 8}
+            stepLarge={keyStepLarge}
             keyboardLabel={`${element.name}${element.locked ? " (locked)" : ""}. Arrow keys move it, Delete removes it.`}
             onPointerDown={(event: PointerEvent<HTMLDivElement>) => {
                 onSelect(element.id);
@@ -119,13 +123,40 @@ const CanvasElement = memo(function CanvasElement({
     );
 });
 
+/*
+ * The snapping grid, drawn as lines at whole multiples of the spacing — measured from the label's
+ * corner, as positions are — rather than as a tiled background, whose tiles a browser may round to
+ * whole pixels and so drift off the grid across the label.
+ */
+const LabelGrid = memo(function LabelGrid({ width, height, ppi, grid }: { width: number; height: number; ppi: number; grid: SnapGrid }) {
+    const { minor, major } = gridLines(grid, ppi);
+    if (major === null) {
+        return null;
+    }
+
+    const path = (spacing: number, except: number | null) =>
+        [
+            ...linePositions(width, spacing, except).map((x) => `M${(x * ppi).toFixed(2)} 0V${(height * ppi).toFixed(2)}`),
+            ...linePositions(height, spacing, except).map((y) => `M0 ${(y * ppi).toFixed(2)}H${(width * ppi).toFixed(2)}`)
+        ].join("");
+
+    return (
+        <div className="lp-label-grid" aria-hidden="true">
+            <svg width={width * ppi} height={height * ppi} shapeRendering="crispEdges">
+                {minor !== null ? <path className="lp-label-grid-minor" d={path(minor, major)} /> : null}
+                <path className="lp-label-grid-major" d={path(major, null)} />
+            </svg>
+        </div>
+    );
+});
+
 export function Canvas({
     sheet,
     design,
     context,
     selectedId,
     zoom,
-    snapStep,
+    grid,
     onSelect,
     onMove,
     onResize,
@@ -221,10 +252,10 @@ export function Canvas({
         event.preventDefault();
         event.stopPropagation();
 
-        const step = (snapStep ?? 1 / 32) * (event.shiftKey ? 8 : 1);
+        const step = event.shiftKey ? (grid?.major ?? FREE_STEP * 8) : (grid?.step ?? FREE_STEP);
         const horizontal = !handle.classList.contains("eb-resize-box-handle-s");
         const vertical = !handle.classList.contains("eb-resize-box-handle-e");
-        const round = (value: number) => Math.max(0.02, snapStep ? snapTo(value, snapStep) : Number(value.toFixed(4)));
+        const round = (value: number) => Math.max(0.02, grid ? snapTo(value, grid.step) : Number(value.toFixed(4)));
 
         if (horizontal && (event.key === "ArrowRight" || event.key === "ArrowLeft")) {
             onResize(element.id, "width", round(element.width + (event.key === "ArrowRight" ? step : -step)));
@@ -263,8 +294,6 @@ export function Canvas({
 
     const radius = labelRadius(sheet, ppi);
     const margin = design.safeMargin * ppi;
-    const gridPx = snapStep ? snapStep * ppi : 0;
-    const showGrid = gridPx >= 8;
 
     return (
         <div
@@ -290,16 +319,7 @@ export function Canvas({
                     aria-label={`Label, ${sheet.labelWidth} by ${sheet.labelHeight} inches`}
                     role="region"
                 >
-                    {showGrid ? (
-                        <div
-                            className="lp-label-grid"
-                            style={{
-                                backgroundImage:
-                                    "linear-gradient(to right, rgba(20,91,231,0.08) 1px, transparent 1px), linear-gradient(to bottom, rgba(20,91,231,0.08) 1px, transparent 1px)",
-                                backgroundSize: `${gridPx}px ${gridPx}px`
-                            }}
-                        />
-                    ) : null}
+                    {grid ? <LabelGrid width={sheet.labelWidth} height={sheet.labelHeight} ppi={ppi} grid={grid} /> : null}
                     {margin > 0 ? (
                         <div
                             className="lp-label-guide"
@@ -321,7 +341,7 @@ export function Canvas({
                                 ppi={ppi}
                                 selected={element.id === selectedId}
                                 context={context}
-                                snapStep={snapStep}
+                                grid={grid}
                                 onSelect={onSelect}
                                 onMove={onMove}
                                 onResize={onResize}

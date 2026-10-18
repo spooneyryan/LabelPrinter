@@ -1059,6 +1059,24 @@ body {
     inset: 0;
     pointer-events: none;
     border-radius: inherit;
+    overflow: hidden;
+}
+
+.lp-label-grid svg {
+    display: block;
+}
+
+.lp-label-grid path {
+    fill: none;
+    stroke-width: 1;
+}
+
+.lp-label-grid-minor {
+    stroke: rgba(20, 91, 231, 0.08);
+}
+
+.lp-label-grid-major {
+    stroke: rgba(20, 91, 231, 0.2);
 }
 
 .lp-label-clip {
