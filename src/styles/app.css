@@ -1088,6 +1088,9 @@ body {
 }
 
 .lp-element {
+    /* EbDraggable's inline left/top win; these hold the place while a drag starts (see Canvas.tsx). */
+    left: var(--lp-x);
+    top: var(--lp-y);
     outline: 1px dashed transparent;
     outline-offset: 0;
     border-radius: 1px;

@@ -131,11 +131,18 @@ ZXing) across QR versions 1–40, every error-correction level, and every Code 1
 
 ## Notes on the component suite
 
-Two behaviours of `@electricblazor/react` 0.17.0 are worked around here and worth fixing upstream:
+These behaviours of `@electricblazor/react` 0.17.0 are worked around here and worth fixing upstream:
 
 - **EbDraggable handles arrow keys from its whole subtree**, so arrows on a focused EbResizeBox
   handle inside it both resize and move the box. The canvas intercepts those keys in the capture
   phase and performs the resize itself (`features/design/Canvas.tsx`).
+- **EbDraggable drops its position when a drag starts.** While dragging it leaves `left`/`top` out
+  of its inline style, React clears them, and the element sits at its container's top left from
+  the press until the pointer first moves. The canvas also passes the position as custom
+  properties, which the stylesheet uses to hold the element in place (`features/design/Canvas.tsx`).
+- **EbTabbedCard handles its tab keys on its whole root**, panel included, so arrows, Home and End
+  in a text box switched steps instead of moving the caret. The app stops those keys at the panel
+  (`App.tsx`).
 - **EbSaveMenu's Save As dialog does not focus its name box** when it opens, and its load callback
   receives only the value, not the name it was saved under. The app wraps the template store so a
   template saved as "Shipping labels" is named that (`state/persistence.ts`); the focus issue has

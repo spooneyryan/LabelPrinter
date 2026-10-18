@@ -1,5 +1,5 @@
 import { EbDraggable, EbResizeBox, EbResizeHandles } from "@electricblazor/react";
-import { memo, useEffect, useRef, useState, type DragEvent, type KeyboardEvent, type PointerEvent } from "react";
+import { memo, useEffect, useRef, useState, type CSSProperties, type DragEvent, type KeyboardEvent, type PointerEvent } from "react";
 import { gridLines, linePositions, type SnapGrid } from "../../model/grid.ts";
 import type { MergeContext } from "../../model/merge.ts";
 import type { LabelDesign, LabelElement, SheetSpec } from "../../model/types.ts";
@@ -75,6 +75,14 @@ const CanvasElement = memo(function CanvasElement({
 
     const keyStep = (grid?.step ?? FREE_STEP) * ppi;
     const keyStepLarge = (grid?.major ?? FREE_STEP * 8) * ppi;
+
+    /*
+     * EbDraggable leaves left/top out of its inline style while a drag is in flight, so as not to
+     * fight the pointer, and React then clears them: from the press until the pointer first moves,
+     * the element would sit at the label's top left. The same position as custom properties lets
+     * the stylesheet (.lp-element) hold it in place meanwhile.
+     */
+    const position = { "--lp-x": `${element.x * ppi}px`, "--lp-y": `${element.y * ppi}px` } as CSSProperties;
     const className = [
         "lp-element",
         selected ? "lp-element-selected" : "",
@@ -87,6 +95,7 @@ const CanvasElement = memo(function CanvasElement({
         <EbDraggable
             className={className}
             data-element-id={element.id}
+            style={position}
             x={element.x * ppi}
             y={element.y * ppi}
             onXChange={(x) => onMove(element.id, "x", toInches(x))}
