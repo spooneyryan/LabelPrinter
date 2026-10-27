@@ -266,6 +266,41 @@ export function sanitizeCalibration(value: unknown): Calibration {
     };
 }
 
+/*
+ * A project is the whole session — the sheet, the design, the data with its excluded rows, and the
+ * job settings — saved under a name or to a file. A template is the label alone, to reuse with
+ * other data. The printer calibration belongs to neither: it is this machine's.
+ */
+
+export const PROJECT_FORMAT = "label-printer-project";
+
+export interface ProjectFile extends Session {
+    format: typeof PROJECT_FORMAT;
+    /** When it was saved, ISO 8601. */
+    savedAt: string;
+}
+
+export function toProjectFile(session: Session, savedAt = new Date().toISOString()): ProjectFile {
+    return { format: PROJECT_FORMAT, savedAt, ...session };
+}
+
+/** What a file someone opens turned out to be. */
+export type LabelFile = { kind: "project"; session: Session } | { kind: "template"; template: LabelTemplate };
+
+/**
+ * Reads a file that is either a project or a template, or `null` when it is neither. A project is
+ * recognised by its format marker or, failing that, by holding a template inside it.
+ */
+export function readLabelFile(value: unknown): LabelFile | null {
+    if (isObject(value) && (value.format === PROJECT_FORMAT || isObject(value.template))) {
+        const session = sanitizeSession(value);
+        return session ? { kind: "project", session } : null;
+    }
+
+    const template = sanitizeTemplate(value);
+    return template ? { kind: "template", template } : null;
+}
+
 /** Reads an autosaved session, or `null` when there is none worth restoring. */
 export function sanitizeSession(value: unknown): Session | null {
     if (!isObject(value)) {

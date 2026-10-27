@@ -25,18 +25,22 @@ import { DEFAULT_DESIGN_UI, DesignStep, type DesignUi } from "./features/design/
 import { PrintStep } from "./features/print/PrintStep.tsx";
 import { SheetStep } from "./features/sheet/SheetStep.tsx";
 import { defaultSession, isCalibrated } from "./model/defaults.ts";
-import { sanitizeTemplate } from "./model/project.ts";
+import { ProjectMenu } from "./features/project/ProjectMenu.tsx";
+import { readLabelFile, sanitizeTemplate, toProjectFile } from "./model/project.ts";
 import type { Calibration, LabelTemplate, Session } from "./model/types.ts";
 import type { LengthUnit } from "./model/units.ts";
 import { useJob } from "./render/job.ts";
 import { PRINT_PPI, PrintRoot, SheetPage, TestPage } from "./render/SheetPage.tsx";
 import {
+    listProjects,
     loadCalibration,
+    loadProject,
     loadSession,
     loadTheme,
     loadUnit,
     namingTemplateStore,
     saveCalibration,
+    saveProject,
     saveTheme,
     saveUnit,
     useAutosave,
@@ -109,6 +113,10 @@ function Workspace({ initialStep }: { initialStep: StepId }) {
     const [printRequest, setPrintRequest] = useState<PrintRequest | null>(null);
     const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
     const [settingsOpen, setSettingsOpen] = useState(false);
+    /** The name the open project was last saved or opened as, so Save doesn't ask to replace it. */
+    const [savedAs, setSavedAs] = useState<string | null>(null);
+    /** Ctrl+S, kept current so the window's key handler always saves the latest session. */
+    const saveShortcut = useRef<() => void>(() => undefined);
     const settingsAnchor = useRef<HTMLButtonElement>(null);
     const printing = useRef(false);
     printing.current = printRequest !== null;
@@ -191,6 +199,12 @@ function Workspace({ initialStep }: { initialStep: StepId }) {
                 return;
             }
 
+            if (key === "s" && !event.shiftKey) {
+                event.preventDefault();
+                saveShortcut.current();
+                return;
+            }
+
             // In a text box the browser's own undo is the right one.
             if (isTyping(event.target)) {
                 return;
@@ -221,31 +235,100 @@ function Workspace({ initialStep }: { initialStep: StepId }) {
         toast.showSuccess(`Opened “${loaded.name}”. Undo (Ctrl+Z) to go back.`);
     };
 
-    const exportTemplate = async () => {
-        const name = template.name.replace(/[\\/:*?"<>|]+/g, " ").trim() || "labels";
-        await fileStore.save(name, template);
+    const fileName = (suffix = "") => `${template.name.replace(/[\\/:*?"<>|]+/g, " ").trim() || "labels"}${suffix}`;
+    const failed = (title: string) => (error: unknown) =>
+        toast.showError(error instanceof Error ? error.message : String(error), { title });
+
+    /** Saves the project in this browser, asking first before it replaces a different one. */
+    const saveProjectAs = async (name: string) => {
+        if (name !== savedAs) {
+            const existing = await listProjects().catch(() => []);
+            if (
+                existing.some((entry) => entry.key === name) &&
+                !(await dialogs.confirm(`A project called “${name}” is already saved. Replace it?`, {
+                    title: "Save project",
+                    confirmLabel: "Replace"
+                }))
+            ) {
+                return;
+            }
+        }
+
+        if (name !== template.name) {
+            editor.edit((current) => ({ ...current, name }));
+        }
+
+        await saveProject({ ...session, template: { ...session.template, name } });
+        setSavedAs(name);
+        toast.showSuccess(`Saved the project “${name}” in this browser.`);
     };
 
-    const importTemplate = async () => {
-        try {
-            const value = await fileStore.load<unknown>("");
-            if (value !== null) {
-                applyTemplate(value, "That file");
-            }
-        } catch (error) {
-            toast.showError(error instanceof Error ? error.message : String(error), { title: "Couldn't open the template" });
+    const saveCurrentProject = () => void saveProjectAs(template.name).catch(failed("Couldn't save the project"));
+    saveShortcut.current = saveCurrentProject;
+
+    const promptSaveAs = async () => {
+        const name = await dialogs.prompt("Name the project. It keeps the sheet, the design, the data and the print settings.", {
+            title: "Save project as",
+            initialValue: template.name,
+            required: true,
+            confirmLabel: "Save"
+        });
+
+        if (name?.trim()) {
+            await saveProjectAs(name.trim()).catch(failed("Couldn't save the project"));
+        }
+    };
+
+    /** Replaces everything with a project, after asking: opening one can't be undone. */
+    const openSession = async (opened: Session, name: string) => {
+        const confirmed = await dialogs.confirm(
+            `Open “${name}”? It replaces the open label, data and print settings, which can't be undone — save them first to keep them.`,
+            { title: "Open project", confirmLabel: "Open" }
+        );
+
+        if (confirmed) {
+            dispatch({ type: "load", session: opened });
+            setDesignUi(DEFAULT_DESIGN_UI);
+            setSavedAs(opened.template.name);
+            toast.showSuccess(`Opened the project “${name}”.`);
+        }
+    };
+
+    const openSavedProject = async (name: string) => {
+        const opened = await loadProject(name).catch(() => null);
+        if (opened) {
+            await openSession(opened, name);
+        } else {
+            toast.showError(`The saved project “${name}” couldn't be read.`);
+        }
+    };
+
+    const openFile = async () => {
+        const value = await fileStore.load<unknown>("");
+        if (value === null) {
+            return;
+        }
+
+        const opened = readLabelFile(value);
+        if (opened?.kind === "project") {
+            await openSession(opened.session, opened.session.template.name);
+        } else if (opened?.kind === "template") {
+            applyTemplate(opened.template, "That file");
+        } else {
+            toast.showError("That file is not a label project or template.");
         }
     };
 
     const startOver = async () => {
         const confirmed = await dialogs.confirm(
-            "Start a new label? The current design and data will be cleared. Save the template first to keep it.",
+            "Start a new label? The current design and data will be cleared. Save the project first to keep it.",
             { title: "Start over", confirmLabel: "Start over", confirmVariant: "danger" }
         );
 
         if (confirmed) {
             dispatch({ type: "load", session: defaultSession() });
             setDesignUi(DEFAULT_DESIGN_UI);
+            setSavedAs(null);
             setStep("sheet");
         }
     };
@@ -305,16 +388,15 @@ function Workspace({ initialStep }: { initialStep: StepId }) {
                             value={template}
                             onValueChange={(value) => value && applyTemplate(value, "That saved template")}
                         />
-                        <EbTooltip text="Download this template as a file">
-                            <EbButton onClick={() => void exportTemplate()}>
-                                <Icon name="download" /> Export
-                            </EbButton>
-                        </EbTooltip>
-                        <EbTooltip text="Open a template file">
-                            <EbButton onClick={() => void importTemplate()}>
-                                <Icon name="upload" /> Import
-                            </EbButton>
-                        </EbTooltip>
+                        <ProjectMenu
+                            name={template.name}
+                            onSave={saveCurrentProject}
+                            onSaveAs={() => void promptSaveAs()}
+                            onSaveFile={() => void fileStore.save(fileName(), toProjectFile(session)).catch(failed("Couldn't save the file"))}
+                            onOpenFile={() => void openFile().catch(failed("Couldn't open the file"))}
+                            onSaveTemplateFile={() => void fileStore.save(fileName(" template"), template).catch(failed("Couldn't save the file"))}
+                            onOpenProject={(name) => void openSavedProject(name)}
+                        />
                         <EbButton onClick={() => void startOver()}>
                             <Icon name="file" /> New
                         </EbButton>
@@ -338,7 +420,8 @@ function Workspace({ initialStep }: { initialStep: StepId }) {
                                     onValueChange={setUnit}
                                 />
                                 <p className="lp-note">
-                                    Everything is kept in this browser: the open label, saved templates, and the printer calibration.
+                                    Everything is kept in this browser: the open label, saved projects and templates, and the
+                                    printer calibration. Save a project to a file to move it to another computer.
                                 </p>
                             </div>
                         </EbPopover>

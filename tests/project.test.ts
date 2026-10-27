@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import { defaultSession, defaultTemplate } from "../src/model/defaults.ts";
-import { sanitizeCalibration, sanitizeSession, sanitizeTemplate } from "../src/model/project.ts";
+import { PROJECT_FORMAT, readLabelFile, sanitizeCalibration, sanitizeSession, sanitizeTemplate, toProjectFile } from "../src/model/project.ts";
+import type { Session } from "../src/model/types.ts";
 
 describe("templates", () => {
     test("a template survives a JSON round trip unchanged", () => {
@@ -88,5 +89,39 @@ describe("sessions", () => {
             scaleX: 90,
             scaleY: 101
         });
+    });
+});
+
+describe("project files", () => {
+    const project = (): Session => ({
+        ...defaultSession(),
+        template: { ...defaultTemplate(), name: "Capacitors" },
+        data: { source: "parts.csv", fields: ["Code", "Value"], rows: [["335", "3.3 uF"], ["104", "0.1 uF"], ["225", "2.2 uF"]] },
+        excluded: [1],
+        print: { ...defaultSession().print, copies: 2, usedSlots: [0, 1, 2] }
+    });
+
+    test("a project keeps everything through a JSON round trip: sheet, design, data, exclusions, print settings", () => {
+        const session = project();
+        const file = JSON.parse(JSON.stringify(toProjectFile(session, "2026-10-26T12:00:00.000Z")));
+        assert.equal(file.format, PROJECT_FORMAT);
+        assert.equal(file.savedAt, "2026-10-26T12:00:00.000Z");
+        assert.deepEqual(readLabelFile(file), { kind: "project", session });
+    });
+
+    test("a template file opens as a template, not a project", () => {
+        const template = defaultTemplate();
+        assert.deepEqual(readLabelFile(JSON.parse(JSON.stringify(template))), { kind: "template", template });
+    });
+
+    test("a project without its marker is still recognised by the template inside it", () => {
+        const session = project();
+        assert.equal(readLabelFile(JSON.parse(JSON.stringify(session)))?.kind, "project");
+    });
+
+    test("anything else is neither", () => {
+        assert.equal(readLabelFile({ hello: "world" }), null);
+        assert.equal(readLabelFile({ format: PROJECT_FORMAT }), null);
+        assert.equal(readLabelFile("text"), null);
     });
 });

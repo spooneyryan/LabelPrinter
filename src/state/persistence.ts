@@ -1,7 +1,7 @@
 import { IndexedDbSaveStore, type SaveEntry, type SaveStore } from "@electricblazor/react/save";
 import { useEffect, useRef } from "react";
 import { defaultCalibration } from "../model/defaults.ts";
-import { sanitizeCalibration, sanitizeSession } from "../model/project.ts";
+import { readLabelFile, sanitizeCalibration, sanitizeSession, toProjectFile } from "../model/project.ts";
 import type { Calibration, Session } from "../model/types.ts";
 import type { LengthUnit } from "../model/units.ts";
 
@@ -10,7 +10,8 @@ import type { LengthUnit } from "../model/units.ts";
  *
  *   the session    IndexedDB, autosaved — the open template, the data and the job. Data can be
  *                  thousands of rows, past what localStorage holds.
- *   templates      IndexedDB, saved by name through EbSaveMenu.
+ *   projects       IndexedDB, saved by name from the Project menu: the whole session.
+ *   templates      IndexedDB, saved by name through EbSaveMenu: the label without the data.
  *   preferences    localStorage — the skin, the units, and the printer calibration, which belongs
  *                  to this machine's printer rather than to any one template.
  *
@@ -63,6 +64,25 @@ function createStore(storeName: string): SaveStore {
 
 export const sessionStore = createStore("session");
 export const templateStore = createStore("templates");
+/** Projects saved by name: whole sessions, as {@link ProjectFile}s keyed by the project's name. */
+export const projectStore = createStore("projects");
+
+/** The saved projects, most recently saved first. */
+export async function listProjects(): Promise<SaveEntry[]> {
+    const entries = await projectStore.list();
+    return entries.sort((a, b) => (b.lastModifiedUtc ?? "").localeCompare(a.lastModifiedUtc ?? "") || a.key.localeCompare(b.key));
+}
+
+/** Saves the session as a project under its template's name. */
+export async function saveProject(session: Session): Promise<void> {
+    await projectStore.save(session.template.name, toProjectFile(session));
+}
+
+/** A saved project, checked like any file, or `null` when it is missing or unreadable. */
+export async function loadProject(name: string): Promise<Session | null> {
+    const opened = readLabelFile(await projectStore.load<unknown>(name));
+    return opened?.kind === "project" ? opened.session : null;
+}
 
 /**
  * The template store as EbSaveMenu sees it. The menu saves its value under whatever name is typed

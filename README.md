@@ -3,7 +3,7 @@
 Design a label once, merge a list of records into it, and print full sheets of labels from the
 browser. Built with React, TypeScript and the
 [`@electricblazor/react`](../ElectricBlazor/react/README.md) component suite. Everything — the
-open label, the data, saved templates, printer calibration — stays in the browser; nothing is
+open label, the data, saved projects and templates, printer calibration — stays in the browser; nothing is
 uploaded anywhere.
 
 ## Running it
@@ -61,8 +61,16 @@ The app is four steps, visited in any order:
    partly used sheet, a page-by-page preview, label outlines for test runs, and per-printer
    calibration (offset and stretch) with the same test sheet.
 
-Templates (the sheet and the design, never the data) are saved by name in the browser through
-EbSaveMenu, or exported and imported as `.json` files.
+**Projects** keep everything together: the label stock, the design, the data with its excluded
+records, and the print settings (copies, fill order, used positions). The Project menu saves one in
+the browser under the label's name (**Ctrl+S**), saves it under another name, lists the saved ones
+to open or delete, and saves or opens a project as a `.json` file to move it to another computer.
+Opening a project replaces what is open, so it asks first. The printer calibration stays out of
+projects: it belongs to the printer, not the job.
+
+**Templates** are the sheet and the design without the data, to reuse with other records. They are
+saved by name through the Templates menu, or as a file from the Project menu. Open a file opens
+either kind.
 
 ### Data formats
 
